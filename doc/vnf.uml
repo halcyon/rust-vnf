@@ -1,0 +1,21 @@
+# see http://plantuml.com/component-diagram for help
+
+@startuml
+
+
+component "Syslog\nProducer" as producer
+component "Syslog\nConsumer" as consumer
+component "VNF Crate" as vnf
+collections "Vertica Native Files" as files
+component "VNF Loader" as loader
+database "Vertica" {
+    frame syslog_table
+}
+
+producer --> consumer
+consumer -> vnf: uses
+consumer --> files: writes
+files --> loader
+loader --> syslog_table
+
+@enduml
