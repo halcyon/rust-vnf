@@ -1,4 +1,5 @@
 use std::fmt;
+use std::convert::From;
 use std::io::Write;
 
 
@@ -31,15 +32,15 @@ impl fmt::Display for Header {
     }
 }
 
-impl Header {
-    pub fn into_vec(&self) -> Vec<u8> {
-        let mut sample: Vec<u8> = Vec::new();
-        sample.extend(self.signature.iter());
-        sample.extend(self.header_area_length.iter());
-        sample.extend(self.version.iter());
-        sample.push(self.filler);
-        sample.extend(self.number_of_columns.iter().cloned());
-        sample
+impl From<Header> for Vec<u8> {
+    fn from(header: Header) -> Self {
+        let mut vec: Vec<u8> = Vec::new();
+        vec.extend(header.signature.iter());
+        vec.extend(header.header_area_length.iter());
+        vec.extend(header.version.iter());
+        vec.push(header.filler);
+        vec.extend(header.number_of_columns.iter().cloned());
+        vec
     }
 }
 
@@ -58,7 +59,7 @@ mod tests {
                               filler: FILLER,
                               number_of_columns: [0x0E, 0x00],
         };
-        sample.write(header.into_vec().as_slice());
+        sample.write(&Vec::from(header));
         println!("{:0X?}", sample);
 
     }
