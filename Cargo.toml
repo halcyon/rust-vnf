@@ -1,5 +1,5 @@
 [package]
-name = "rust-vnf"
+name = "vnf"
 version = "0.1.0"
 authors = ["Scott McLeod <scotmcle@cisco.com>"]
 edition = "2018"
