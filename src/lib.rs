@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::Write;
 
 
 /// Function inputs will be column types in database ordinal order -> vnf header in byte array format.
@@ -17,7 +18,7 @@ struct Header {
     header_area_length: [u8; 4],
     version: [u8; 2],
     filler: u8,
-    columns: [u8; 2],
+    number_of_columns: [u8; 2],
 }
 
 impl fmt::Display for Header {
@@ -26,17 +27,19 @@ impl fmt::Display for Header {
         writeln!(f, "header_area_length: {:X?}", self.header_area_length)?;
         writeln!(f, "version: {:X?}", self.version)?;
         writeln!(f, "filler: {:X?}", self.filler)?;
-        writeln!(f, "columns: {:X?}", self.columns)
+        writeln!(f, "number_of_columns: {:X?}", self.number_of_columns)
     }
 }
 
-#[allow(dead_code)]
-fn header() -> Header {
-    Header { signature: SIGNATURE,
-             header_area_length: HEADER_AREA_LENGTH,
-             version: VERSION,
-             filler: FILLER,
-             columns: [0x0E, 0x00],
+impl Header {
+    pub fn into_vec(&self) -> Vec<u8> {
+        let mut sample: Vec<u8> = Vec::new();
+        sample.extend(self.signature.iter());
+        sample.extend(self.header_area_length.iter());
+        sample.extend(self.version.iter());
+        sample.push(self.filler);
+        sample.extend(self.number_of_columns.iter().cloned());
+        sample
     }
 }
 
@@ -47,8 +50,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn another_test() {
-        println!("{}", header());
-        // assert_eq!(SIGNATURE, header());
+    fn validate_hello() {
+        let mut sample: Vec<u8> = Vec::new();
+        let header = Header { signature: SIGNATURE,
+                              header_area_length: HEADER_AREA_LENGTH,
+                              version: VERSION,
+                              filler: FILLER,
+                              number_of_columns: [0x0E, 0x00],
+        };
+        sample.write(header.into_vec().as_slice());
+        println!("{:0X?}", sample);
+
     }
 }
