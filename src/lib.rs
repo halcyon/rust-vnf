@@ -1,23 +1,6 @@
 use std::convert::From;
 use std::fmt;
 
-// enum ColumnTypes {
-//    INTEGER = 0x08,
-//    FLOAT = 0x08,
-//    CHAR { length: i32 },
-//    VARCHAR = 0xFF_FF_FF_FF,
-//    BOOLEAN = 0x01,
-//    DATE = 0x08,
-//    TIMESTAMP = 0x08,
-//    TIMESTAMPTZ = 0x08,
-//    TIME = 0x08,
-//    TIMETZ = 0x08,
-//    VARBINARY = 0xFF_FF_FF_FF,
-//    BINARY = 0x03,
-//    NUMERIC {precision: i32, scale: i32},
-//    INTERVAL = 0x08
-// }
-
 enum ColumnTypes {
     Integer,
     Float,
@@ -155,6 +138,4 @@ mod tests {
         println!("{:X}", ColumnTypes::VarBinary.as_bytes());
         println!("{:X}", ColumnTypes::Char(6).as_bytes());
     }
-
-
 }
