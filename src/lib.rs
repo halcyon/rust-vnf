@@ -62,16 +62,18 @@ struct FileHeader {
     version: [u8; 2],
     filler: u8,
     number_of_columns: [u8; 2],
+    column_widths: Vec<i32>,
 }
 
 impl FileHeader {
-    pub fn new(number_of_columns: u16) -> FileHeader {
+    pub fn new(column_widths: Vec<i32>) -> FileHeader {
         FileHeader {
-            signature: [0x4E, 0x41, 0x54, 0x49, 0x56, 0x45, 0x0A, 0xFF, 0x0D, 0x0A, 0x00],
-            header_area_length: (4 * number_of_columns as u32 + 5).to_le_bytes(),
-            version: [0x01, 0x00],
-            filler: 0x00,
-            number_of_columns: number_of_columns.to_le_bytes(),
+            signature: [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0],
+            header_area_length: ((4 * column_widths.len() + 5) as u32).to_le_bytes(),
+            version: [1, 0],
+            filler: 0,
+            number_of_columns: (column_widths.len() as u16).to_le_bytes(),
+            column_widths: column_widths,
         }
     }
 }
@@ -94,6 +96,9 @@ impl From<FileHeader> for Vec<u8> {
         vec.extend(header.version.iter());
         vec.push(header.filler);
         vec.extend(header.number_of_columns.iter());
+        for w in header.column_widths {
+            vec.extend(&w.to_le_bytes())
+        }
         vec
     }
 }
@@ -103,14 +108,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_file_header() {
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 05, 0, 0, 0, 1, 0, 0, 000, 0), Vec::from(FileHeader::new(0)));
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 09, 0, 0, 0, 1, 0, 0, 001, 0), Vec::from(FileHeader::new(1)));
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 13, 0, 0, 0, 1, 0, 0, 002, 0), Vec::from(FileHeader::new(2)));
+    fn new_file_header_with_no_columns() {
+        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 05, 0, 0, 0, 1, 0, 0, 0, 0),
+                   Vec::from(FileHeader::new(vec!())));
+    }
 
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 01, 4, 0, 0, 1, 0, 0, 255, 0), Vec::from(FileHeader::new(255)));
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 05, 4, 0, 0, 1, 0, 0, 000, 1), Vec::from(FileHeader::new(256)));
-        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 09, 4, 0, 0, 1, 0, 0, 001, 1), Vec::from(FileHeader::new(257)));
+    #[test]
+    fn new_file_header_with_one_column() {
+        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 09, 0, 0, 0, 1, 0, 0, 1, 0,
+                        255, 255, 255, 255),
+                   Vec::from(FileHeader::new(vec!(-1))));
+    }
+
+    #[test]
+    fn new_file_header_with_two_columns() {
+        assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 13, 0, 0, 0, 1, 0, 0, 2, 0,
+                        255, 255, 255, 255,
+                        4, 0, 0, 0),
+                   Vec::from(FileHeader::new(vec!(-1, 4))));
+    }
+
+    #[test]
+    fn new_file_header_with_255_columns() {
+        let mut ex255 = vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 1, 4, 0, 0, 1, 0, 0, 255, 0);
+        ex255.extend(vec!(255; 4 * 255));
+        assert_eq!(ex255, Vec::from(FileHeader::new(vec!(-1; 255))));
+    }
+
+    #[test]
+    fn new_file_header_with_256_columns() {
+        let mut ex256 = vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 5, 4, 0, 0, 1, 0, 0, 0, 1);
+        ex256.extend(vec!(255; 4 * 256));
+        assert_eq!(ex256, Vec::from(FileHeader::new(vec!(-1; 256))));
+    }
+
+    #[test]
+    fn new_file_header_with_257_columns() {
+        let mut ex257 = vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 9, 4, 0, 0, 1, 0, 0, 1, 1);
+        ex257.extend(vec!(255; 4 * 257));
+        assert_eq!(ex257, Vec::from(FileHeader::new(vec!(-1; 257))));
     }
 
     #[test]
