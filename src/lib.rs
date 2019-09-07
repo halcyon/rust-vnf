@@ -1,22 +1,60 @@
 use std::convert::From;
 use std::fmt;
 
-//enum ColumnTypes {
-//    INTEGER,
-//    FLOAT,
-//    CHAR(size),
-//    VARCHAR,
-//    BOOLEAN,
-//    DATE,
-//    TIMESTAMP,
-//    TIMESTAMPTZ,
-//    TIME,
-//    TIMETZ,
-//    VARBINARY,
-//    BINARY,
-//    NUMERIC(precision, scale),
-//    INTERVAL
-//}
+// enum ColumnTypes {
+//    INTEGER = 0x08,
+//    FLOAT = 0x08,
+//    CHAR { length: i32 },
+//    VARCHAR = 0xFF_FF_FF_FF,
+//    BOOLEAN = 0x01,
+//    DATE = 0x08,
+//    TIMESTAMP = 0x08,
+//    TIMESTAMPTZ = 0x08,
+//    TIME = 0x08,
+//    TIMETZ = 0x08,
+//    VARBINARY = 0xFF_FF_FF_FF,
+//    BINARY = 0x03,
+//    NUMERIC {precision: i32, scale: i32},
+//    INTERVAL = 0x08
+// }
+
+enum ColumnTypes {
+    Integer,
+    Float,
+    Char(u32),
+    VarChar,
+    Boolean,
+    Date,
+    Timestamp,
+    TimestampTz,
+    Time,
+    TimeTz,
+    VarBinary,
+    Binary,
+    // Numeric {precision: i32, scale: i32},
+    Interval
+}
+
+impl ColumnTypes {
+    fn as_bytes(&self) -> u32 {
+        match *self {
+            ColumnTypes::Integer |
+            ColumnTypes::Float |
+            ColumnTypes::Date |
+            ColumnTypes::Timestamp |
+            ColumnTypes::TimestampTz |
+            ColumnTypes::Time |
+            ColumnTypes::TimeTz |
+            ColumnTypes::Interval => 8u32,
+
+            ColumnTypes::Char(length)  => length,
+            ColumnTypes::VarChar | ColumnTypes::VarBinary => std::u32::MAX,
+            ColumnTypes::Boolean => 1u32,
+            ColumnTypes::Binary => 3u32
+        }
+
+    }
+}
 
 struct FileHeader {
     signature: [u8; 11],
@@ -74,4 +112,13 @@ mod tests {
         assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 05, 4, 0, 0, 1, 0, 0, 000, 1), Vec::from(FileHeader::new(256)));
         assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 09, 4, 0, 0, 1, 0, 0, 001, 1), Vec::from(FileHeader::new(257)));
     }
+
+    #[test]
+    fn enum_stuff() {
+        println!("{:X}", ColumnTypes::Binary.as_bytes());
+        println!("{:X}", ColumnTypes::VarBinary.as_bytes());
+        println!("{:X}", ColumnTypes::Char(6).as_bytes());
+    }
+
+
 }
