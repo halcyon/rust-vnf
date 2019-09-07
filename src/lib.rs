@@ -1,23 +1,22 @@
 use std::convert::From;
 use std::fmt;
 
-enum ColumnTypes {
-    INTEGER,
-    FLOAT,
-    CHAR(size),
-    VARCHAR,
-    BOOLEAN,
-    DATE,
-    TIMESTAMP,
-    TIMESTAMPTZ,
-    TIME,
-    TIMETZ,
-    VARBINARY,
-    BINARY,
-    NUMERIC(precision, scale),
-    INTERVAL
-}
-
+//enum ColumnTypes {
+//    INTEGER,
+//    FLOAT,
+//    CHAR(size),
+//    VARCHAR,
+//    BOOLEAN,
+//    DATE,
+//    TIMESTAMP,
+//    TIMESTAMPTZ,
+//    TIME,
+//    TIMETZ,
+//    VARBINARY,
+//    BINARY,
+//    NUMERIC(precision, scale),
+//    INTERVAL
+//}
 
 struct FileHeader {
     signature: [u8; 11],
