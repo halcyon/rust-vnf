@@ -6,13 +6,12 @@ This crate creates [Vertica Native Format](https://www.vertica.com/docs/9.2.x/HT
 
 ![Overview](./doc/vnf.svg)
 
-FileHeader::new(Vec[Types]) -> FileHeader
-RowData::new(Vec[Types], Vec[Data]) -> RowData
+<!-- RowData::new(Vec[Types], Vec[Data]) -> RowData -->
 
-VNF {
-  Vec[Types]
-}
+<!-- VNF { -->
+<!--   Vec[Types] -->
+<!-- } -->
 
-Impl VNF {
-  fn(&self, RowData) -> Vec[&u8]
-}
+<!-- Impl VNF { -->
+<!--   fn(&self, RowData) -> Vec[&u8] -->
+<!-- } -->
