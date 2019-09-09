@@ -7,6 +7,7 @@ pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
 pub const FILLER: u8 = 0;
 
+#[derive(Clone)]
 enum ColumnTypes {
     Integer,
     Float,
@@ -20,13 +21,16 @@ enum ColumnTypes {
     TimeTz,
     VarBinary,
     Binary,
-    // Numeric {precision: i32, scale: i32},
+    //TODO: Numeric {precision: i32, scale: i32},
     Interval
 }
 
-impl ColumnTypes {
-    fn as_bytes(&self) -> u32 {
-        match *self {
+impl From<ColumnTypes> for u32 {
+    fn from(column: ColumnTypes) -> Self {
+        match column {
+            ColumnTypes::Boolean => 1,
+            ColumnTypes::Binary => 3,
+
             ColumnTypes::Integer |
             ColumnTypes::Float |
             ColumnTypes::Date |
@@ -34,14 +38,12 @@ impl ColumnTypes {
             ColumnTypes::TimestampTz |
             ColumnTypes::Time |
             ColumnTypes::TimeTz |
-            ColumnTypes::Interval => 8u32,
+            ColumnTypes::Interval => 8,
 
             ColumnTypes::Char(length)  => length,
-            ColumnTypes::VarChar | ColumnTypes::VarBinary => u32::MAX,
-            ColumnTypes::Boolean => 1u32,
-            ColumnTypes::Binary => 3u32
-        }
 
+            ColumnTypes::VarChar | ColumnTypes::VarBinary => u32::MAX,
+        }
     }
 }
 
@@ -55,14 +57,16 @@ struct FileHeader {
 }
 
 impl FileHeader {
-    pub fn new(column_widths: Vec<u32>) -> FileHeader {
+    pub fn new(columns: Vec<ColumnTypes>) -> FileHeader {
         FileHeader {
             signature: SIGNATURE,
-            header_area_length: ((4 * column_widths.len() + 5) as u32).to_le_bytes(),
+            header_area_length: ((4 * columns.len() + 5) as u32).to_le_bytes(),
             version: VERSION,
             filler: FILLER,
-            number_of_columns: (column_widths.len() as u16).to_le_bytes(),
-            column_widths: column_widths,
+            number_of_columns: (columns.len() as u16).to_le_bytes(),
+            column_widths: columns.into_iter()
+                                  .map(|col| u32::from(col))
+                                  .collect()
         }
     }
 }
@@ -124,7 +128,7 @@ mod tests {
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected,
-                   Vec::from(FileHeader::new(vec!(u32::MAX))));
+                   Vec::from(FileHeader::new(vec!(ColumnTypes::VarChar))));
     }
 
     #[test]
@@ -141,7 +145,7 @@ mod tests {
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected,
-                   Vec::from(FileHeader::new(vec!(u32::MAX, 4))));
+                   Vec::from(FileHeader::new(vec!(ColumnTypes::VarChar, ColumnTypes::Char(4)))));
     }
 
     #[test]
@@ -157,7 +161,7 @@ mod tests {
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected,
-                   Vec::from(FileHeader::new(vec!(u32::MAX; 255))));
+                   Vec::from(FileHeader::new(vec!(ColumnTypes::VarBinary; 255))));
     }
 
     #[test]
@@ -173,7 +177,7 @@ mod tests {
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected,
-                   Vec::from(FileHeader::new(vec!(u32::MAX; 256))));
+                   Vec::from(FileHeader::new(vec!(ColumnTypes::VarBinary; 256))));
     }
 
     #[test]
@@ -189,18 +193,18 @@ mod tests {
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected,
-                   Vec::from(FileHeader::new(vec!(u32::MAX; 257))));
+                   Vec::from(FileHeader::new(vec!(ColumnTypes::VarBinary; 257))));
     }
 
-    // #[test]
-    // fn new_file_header() {
-    //     assert_eq!(vec!(78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, 05, 0, 0, 0, 1, 0, 0, 0, 0),
-    //                Vec::from(FileHeader::new(vec!())));
-    // }
-
-    // fn enum_stuff() {
-    //     println!("{:X}", ColumnTypes::Binary.as_bytes());
-    //     println!("{:X}", ColumnTypes::VarBinary.as_bytes());
-    //     println!("{:X}", ColumnTypes::Char(6).as_bytes());
-    // }
+    #[test]
+    fn u32_from_column_types() {
+        assert_eq!(1, u32::from(ColumnTypes::Boolean));
+        assert_eq!(3, u32::from(ColumnTypes::Binary));
+        assert_eq!(8, u32::from(ColumnTypes::Integer));
+        assert_eq!(8, u32::from(ColumnTypes::Interval));
+        assert_eq!(8, u32::from(ColumnTypes::Time));
+        assert_eq!(14, u32::from(ColumnTypes::Char(14)));
+        assert_eq!(u32::MAX, u32::from(ColumnTypes::VarBinary));
+        assert_eq!(u32::MAX, u32::from(ColumnTypes::VarChar));
+    }
 }
