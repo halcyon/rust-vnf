@@ -20,7 +20,7 @@ enum ColumnTypes {
     Time,
     TimeTz,
     VarBinary,
-    Binary,
+    Binary(u32),
     //TODO: Numeric {precision: i32, scale: i32},
     Interval
 }
@@ -29,7 +29,6 @@ impl From<ColumnTypes> for u32 {
     fn from(column: ColumnTypes) -> Self {
         match column {
             ColumnTypes::Boolean => 1,
-            ColumnTypes::Binary => 3,
 
             ColumnTypes::Integer |
             ColumnTypes::Float |
@@ -40,9 +39,11 @@ impl From<ColumnTypes> for u32 {
             ColumnTypes::TimeTz |
             ColumnTypes::Interval => 8,
 
-            ColumnTypes::Char(length)  => length,
+            ColumnTypes::Char(length) |
+            ColumnTypes::Binary(length) => length,
 
-            ColumnTypes::VarChar | ColumnTypes::VarBinary => u32::MAX,
+            ColumnTypes::VarChar |
+            ColumnTypes::VarBinary => u32::MAX
         }
     }
 }
@@ -53,7 +54,7 @@ struct FileHeader {
     version: [u8; 2],
     filler: u8,
     number_of_columns: [u8; 2],
-    column_widths: Vec<u32>,
+    column_widths: Vec<u32>
 }
 
 impl FileHeader {
@@ -103,8 +104,7 @@ mod tests {
     #[test]
     fn new_file_header_with_no_columns() {
         let mut expected: Vec<u8> = Vec::new();
-        let header_area_length: [u8; 4
-] = [5, 0, 0, 0];
+        let header_area_length: [u8; 4] = [5, 0, 0, 0];
         let number_of_columns: [u8; 2] = [0, 0];
         expected.extend(&SIGNATURE);
         expected.extend(&header_area_length);

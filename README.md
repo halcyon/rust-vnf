@@ -1,7 +1,7 @@
 Vertica Native File Creator
 ===========================
-
 This crate creates [Vertica Native Format](https://www.vertica.com/docs/9.2.x/HTML/Content/Authoring/AdministratorsGuide/BinaryFilesAppendix/CreatingNativeBinaryFormatFiles.htm
+
 ) (VNF) files. VNF files are optimized to load large amounts of data efficiently into a Vertica database.
 
 ![Overview](./doc/vnf.svg)
@@ -29,23 +29,23 @@ API
 	}
 	
 	Impl VNF {
-	  fn(&self, RowData) -> Vec[&u8]
+	  fn to_bytes(&self, RowData) -> Vec[&u8]
 	}
 
 Example
 -------
 
-	let vnf_writer = VNFWriter::new(vec!(ColumnType::Integer,
-	                                    ColumnType::Binary,
-	                                    ColumnType::VarChar));
+    use vnf::VNF
+    use vnf::ColumnTypes{Integer, Binary, String}
 
-	                                    
-	let vnf_file = File::new("vnf.bin")	
-	
-	vnf_file::from(vnf_writer.file_header());
-	vnf_file::from(vnf_writer.row(18,0b11101010,"Hello VNF!"));
-	
-	
+    let column_types = vec!(Integer, Binary(1), String);
+    let column_values = vec!(18, 0b11111111, "test");
+
+
+	let vnf = VNF::new(column_types);
+	vnf.add_row(column_values);
+
+    let bytes = Vec<u8>::from(vnf);
 
 		                                    
 		                                    
