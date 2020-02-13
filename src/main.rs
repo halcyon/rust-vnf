@@ -4,6 +4,9 @@ use std::mem::size_of_val;
 use std::u32;
 use std::u8;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
 pub const FILLER: u8 = 0;
@@ -43,7 +46,6 @@ enum ColumnType {
 //     }
 // }
 
-
 impl From<&ColumnType> for u32 {
     fn from(column: &ColumnType) -> Self {
         match *column {
@@ -65,21 +67,21 @@ impl From<&ColumnType> for u32 {
     }
 }
 
-struct Row<'a> {
-    columns: &'a[ColumnType],
-    data: &'a[&'a[u8]]
-}
+// struct Row<'a> {
+//     columns: &'a [ColumnType],
+//     data: &'a [&'a [u8]],
+// }
 
-impl<'a> fmt::Display for Row<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[")?;
-        self.columns.iter().zip(self.data).for_each(|(col, data)| {
-            write!(f, "{:?} ", u32::from(col));
-            write!(f, "{:?},", data);
-        });
-        write!(f, "]")
-    }
-}
+// impl<'a> fmt::Display for Row<'a> {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "[")?;
+//         self.columns.iter().zip(self.data).for_each(|(col, data)| {
+//             write!(f, "{:?} ", u32::from(col));
+//             write!(f, "{:?},", data);
+//         });
+//         write!(f, "]")
+//     }
+// }
 
 struct FileHeader {
     signature: [u8; 11],
@@ -136,6 +138,28 @@ impl From<FileHeader> for Vec<u8> {
             .for_each(|w| vec.extend(&w.to_le_bytes()));
         vec
     }
+}
+
+fn header_widths(columns: &[ColumnType]) -> Vec<[u8; 4]> {
+    let cols: Vec<[u8; 4]> = columns.into_iter().map(|c| u32::from(c).to_le_bytes()).collect();
+    cols
+}
+
+fn main() -> Result<(), std::io::Error> {
+    let mut file = File::create("foo.txt")?;
+    let columns = [
+        ColumnType::Boolean,
+        ColumnType::Integer,
+        ColumnType::Integer,
+        ColumnType::Integer,
+    ];
+    columns.iter().for_each(|col| {
+        let le = u32::from(col).to_le();
+        let mut bytes: [u8; 4] = u32::from(col).to_le_bytes();
+        bytes.iter().for_each(|byte| println!("{}", byte));
+        file.write_all(&bytes);
+    });
+    Ok(())
 }
 
 // fn bytes(columns: &[ColumnType], data: &[&[u8]]) -> Vec<u8> {
@@ -288,15 +312,32 @@ mod tests {
     // }
 
     #[test]
-    fn test_row() {
-        let row = Row {
-            columns: &[ColumnType::Boolean,
-                       ColumnType::Integer,
-                       ColumnType::Integer,
-                       ColumnType::Integer],
-            data: &[&[u8::from(true)], &[12u8], &[1u8], &[2u8]]
-        };
-        println!("Row: {}", row);
+    // fn test_row() {
+    //     let row = Row {
+    //         columns: &[
+    //             ColumnType::Boolean,
+    //             ColumnType::Integer,
+    //             ColumnType::Integer,
+    //             ColumnType::Integer,
+    //         ], // data: &[&[u8::from(true)], &[12u8], &[1u8], &[2u8]]
+    //     };
+    //     println!("Row: {}", row);
+    // }
+    fn test_widths() {
+        // let mut file = File::create("foo.txt")?;
+        let columns = [
+            ColumnType::Boolean,
+            ColumnType::Integer,
+            ColumnType::Integer,
+            ColumnType::Integer,
+        ];
+        columns.iter().for_each(|col| {
+            // println!("{}", u32::from(col).to_le_bytes());
+            let mut bytes: [u8; 4] = u32::from(col).to_le_bytes();
+            bytes.iter().for_each(|byte| println!("{}", byte));
+            // let mut bytes = u32::from(col).to_le_bytes();
+            // bytes.iter().for_each(|byte| file.write_all(byte));
+        });
     }
 
     // fn test_bytes() {
