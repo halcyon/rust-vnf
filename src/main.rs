@@ -140,9 +140,13 @@ impl From<FileHeader> for Vec<u8> {
     }
 }
 
-fn header_widths(columns: &[ColumnType]) -> Vec<[u8; 4]> {
-    let cols: Vec<[u8; 4]> = columns.into_iter().map(|c| u32::from(c).to_le_bytes()).collect();
-    cols
+fn header_widths(columns: &[ColumnType]) -> Result<(), std::io::Error> {
+    let mut file = File::create("foo.txt")?;
+    let bytes = columns.iter()
+                       .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
+                       .collect::<Vec<u8>>();
+    println!("{:?}", bytes);
+    file.write_all(bytes.as_slice())
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -153,13 +157,15 @@ fn main() -> Result<(), std::io::Error> {
         ColumnType::Integer,
         ColumnType::Integer,
     ];
-    columns.iter().for_each(|col| {
-        let le = u32::from(col).to_le();
-        let mut bytes: [u8; 4] = u32::from(col).to_le_bytes();
-        bytes.iter().for_each(|byte| println!("{}", byte));
-        file.write_all(&bytes);
-    });
+    header_widths(&columns)?;
     Ok(())
+    // columns.iter().for_each(|col| {
+    //     let le = u32::from(col).to_le();
+    //     let mut bytes: [u8; 4] = u32::from(col).to_le_bytes();
+    //     bytes.iter().for_each(|byte| println!("{}", byte));
+    //     file.write_all(&bytes);
+    // });
+
 }
 
 // fn bytes(columns: &[ColumnType], data: &[&[u8]]) -> Vec<u8> {
