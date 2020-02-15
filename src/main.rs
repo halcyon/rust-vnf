@@ -1,8 +1,6 @@
 use std::convert::From;
 use std::fmt;
-use std::mem::size_of_val;
 use std::u32;
-use std::u8;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -28,23 +26,6 @@ enum ColumnType {
     //TODO: Numeric {precision: i32, scale: i32},
     Interval,
 }
-
-// impl ColumnTypes {
-//     fn encode<T>(&self, value: Vec<u8>) {
-//         // let mut target: [u8; u32::from(self) as usize];
-//         // let col_width = u32::from(self);
-//         // let val_width = size_of_val(&value);
-//         // if (col_width < u32::MAX) {
-//         //     let buf = value.parse::<u8>();
-//         //     // let mut buf: Vec<u8> = vec![0; val_length as usize]
-//         // }
-
-//         value.parse::<u8>()
-//         // match *self {
-//         //     ColumnTypes::Integer => (value as u32).to_le_bytes()
-//         // }
-//     }
-// }
 
 impl From<&ColumnType> for u32 {
     fn from(column: &ColumnType) -> Self {
@@ -150,7 +131,6 @@ fn header_widths(columns: &[ColumnType]) -> Result<(), std::io::Error> {
 }
 
 fn main() -> Result<(), std::io::Error> {
-    let mut file = File::create("foo.txt")?;
     let columns = [
         ColumnType::Boolean,
         ColumnType::Integer,
@@ -159,13 +139,6 @@ fn main() -> Result<(), std::io::Error> {
     ];
     header_widths(&columns)?;
     Ok(())
-    // columns.iter().for_each(|col| {
-    //     let le = u32::from(col).to_le();
-    //     let mut bytes: [u8; 4] = u32::from(col).to_le_bytes();
-    //     bytes.iter().for_each(|byte| println!("{}", byte));
-    //     file.write_all(&bytes);
-    // });
-
 }
 
 // fn bytes(columns: &[ColumnType], data: &[&[u8]]) -> Vec<u8> {
@@ -334,8 +307,9 @@ mod tests {
         let columns = [
             ColumnType::Boolean,
             ColumnType::Integer,
-            ColumnType::Integer,
-            ColumnType::Integer,
+            ColumnType::Float,
+            ColumnType::Char(6),
+            ColumnType::VarChar
         ];
         columns.iter().for_each(|col| {
             // println!("{}", u32::from(col).to_le_bytes());
