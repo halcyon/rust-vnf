@@ -71,7 +71,7 @@ struct FileHeader {
     version: [u8; 2],
     filler: u8,
     number_of_columns: [u8; 2],
-    column_widths: Vec<u32>,
+    column_widths: Vec<u8>,
 }
 
 impl FileHeader {
@@ -82,7 +82,7 @@ impl FileHeader {
             version: VERSION,
             filler: FILLER,
             number_of_columns: (columns.len() as u16).to_le_bytes(),
-            column_widths: columns.into_iter().map(|col| u32::from(&col)).collect(),
+            column_widths: column_widths(columns.as_slice()),
         }
     }
 }
@@ -105,23 +105,20 @@ impl From<FileHeader> for Vec<u8> {
         vec.extend(header.version.iter());
         vec.push(header.filler);
         vec.extend(header.number_of_columns.iter());
-        header
-            .column_widths
-            .iter()
-            .for_each(|w| vec.extend(&w.to_le_bytes()));
+        vec.extend(header.column_widths);
         vec
     }
 }
 
-fn header_widths(columns: &[ColumnType]) -> Vec<u8> {
+fn column_widths(columns: &[ColumnType]) -> Vec<u8> {
     columns
         .iter()
         .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
         .collect()
 }
 
-fn write_bytes(fileName: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
-    let mut file = File::create()?;
+fn write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
+    let mut file = File::create(file_name)?;
     file.write_all(bytes)
 }
 
@@ -248,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn test_header_widths() {
+    fn test_column_widths() {
         // let mut file = File::create("foo.txt")?;
         let columns = [
             ColumnType::Boolean,
@@ -260,7 +257,7 @@ mod tests {
         ];
         assert_eq!(
             vec![1, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 6, 0, 0, 0, 255, 255, 255, 255, 2, 0, 0, 0],
-            header_widths(&columns)
+            column_widths(&columns)
         );
     }
 }
