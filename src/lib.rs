@@ -142,14 +142,14 @@ mod tests {
 
     #[test]
     fn new_file_header_with_one_column() {
-                assert_eq!(
+        assert_eq!(
             vec!(
                 78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
                 9, 0, 0, 0, // header_area_length
                 1, 0, // VERSION
                 0, // FILLER
                 1, 0, // number_of_columns
-                255, 255, 255, 255,
+                255, 255, 255, 255, // column_widths
             ),
             Vec::from(FileHeader::new(vec!(ColumnType::VarChar)))
         );
@@ -157,21 +157,19 @@ mod tests {
 
     #[test]
     fn new_file_header_with_two_columns() {
-        let mut expected: Vec<u8> = Vec::new();
-        let header_area_length: [u8; 4] = [13, 0, 0, 0];
-        let number_of_columns: [u8; 2] = [2, 0];
-        let column_widths: Vec<u8> = vec![u8::MAX, u8::MAX, u8::MAX, u8::MAX, 4, 0, 0, 0];
-        expected.extend(&SIGNATURE);
-        expected.extend(&header_area_length);
-        expected.extend(&VERSION);
-        expected.push(FILLER);
-        expected.extend(&number_of_columns);
-        expected.extend(column_widths);
         assert_eq!(
-            expected,
+            vec!(
+                78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
+                13, 0, 0, 0, // header_area_length
+                1, 0, // VERSION
+                0, // FILLER
+                2, 0, // number_of_columns
+                255, 255, 255, 255, // column_widths
+                4, 0, 0, 0, // column_widths
+            ),
             Vec::from(FileHeader::new(vec!(
                 ColumnType::VarChar,
-                ColumnType::Char(4)
+                ColumnType::Char(4),
             )))
         );
     }
