@@ -100,12 +100,12 @@ impl fmt::Display for FileHeader {
 impl From<FileHeader> for Vec<u8> {
     fn from(header: FileHeader) -> Self {
         let mut vec: Vec<u8> = Vec::new();
-        vec.extend(header.signature.iter());
-        vec.extend(header.header_area_length.iter());
-        vec.extend(header.version.iter());
+        vec.extend_from_slice(&header.signature);
+        vec.extend_from_slice(&header.header_area_length);
+        vec.extend_from_slice(&header.version);
         vec.push(header.filler);
-        vec.extend(header.number_of_columns.iter());
-        vec.extend(header.column_widths);
+        vec.extend_from_slice(&header.number_of_columns);
+        vec.extend(&header.column_widths);
         vec
     }
 }
