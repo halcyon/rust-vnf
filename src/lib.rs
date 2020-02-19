@@ -4,7 +4,7 @@ use std::u32;
 use std::u8;
 
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::Write;
 
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
