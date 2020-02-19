@@ -128,31 +128,29 @@ mod tests {
 
     #[test]
     fn new_file_header_with_no_columns() {
-        let mut expected: Vec<u8> = Vec::new();
-        let header_area_length: [u8; 4] = [5, 0, 0, 0];
-        let number_of_columns: [u8; 2] = [0, 0];
-        expected.extend(&SIGNATURE);
-        expected.extend(&header_area_length);
-        expected.extend(&VERSION);
-        expected.push(FILLER);
-        expected.extend(&number_of_columns);
-        assert_eq!(expected, Vec::from(FileHeader::new(vec!())));
+        assert_eq!(
+            vec!(
+                78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
+                5, 0, 0, 0, // header_area_length
+                1, 0, // VERSION
+                0, // FILLER
+                0, 0 // number_of_columns
+            ),
+            Vec::from(FileHeader::new(vec!()))
+        );
     }
 
     #[test]
     fn new_file_header_with_one_column() {
-        let mut expected: Vec<u8> = Vec::new();
-        let header_area_length: [u8; 4] = [9, 0, 0, 0];
-        let number_of_columns: [u8; 2] = [1, 0];
-        let column_widths: Vec<u8> = vec![u8::MAX; 4];
-        expected.extend(&SIGNATURE);
-        expected.extend(&header_area_length);
-        expected.extend(&VERSION);
-        expected.push(FILLER);
-        expected.extend(&number_of_columns);
-        expected.extend(column_widths);
-        assert_eq!(
-            expected,
+                assert_eq!(
+            vec!(
+                78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
+                9, 0, 0, 0, // header_area_length
+                1, 0, // VERSION
+                0, // FILLER
+                1, 0, // number_of_columns
+                255, 255, 255, 255,
+            ),
             Vec::from(FileHeader::new(vec!(ColumnType::VarChar)))
         );
     }
