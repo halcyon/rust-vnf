@@ -82,7 +82,11 @@ impl FileHeader {
             version: VERSION,
             filler: FILLER,
             number_of_columns: (columns.len() as u16).to_le_bytes(),
-            column_widths: column_widths(columns.as_slice()),
+            column_widths: columns
+                .as_slice()
+                .iter()
+                .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
+                .collect(),
         }
     }
 }
@@ -108,13 +112,6 @@ impl From<FileHeader> for Vec<u8> {
         vec.extend(&header.column_widths);
         vec
     }
-}
-
-fn column_widths(columns: &[ColumnType]) -> Vec<u8> {
-    columns
-        .iter()
-        .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
-        .collect()
 }
 
 fn write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
@@ -238,22 +235,5 @@ mod tests {
         assert_eq!(14, u32::from(&ColumnType::Char(14)));
         assert_eq!(u32::MAX, u32::from(&ColumnType::VarBinary));
         assert_eq!(u32::MAX, u32::from(&ColumnType::VarChar));
-    }
-
-    #[test]
-    fn test_column_widths() {
-        // let mut file = File::create("foo.txt")?;
-        let columns = [
-            ColumnType::Boolean,
-            ColumnType::Integer,
-            ColumnType::Float,
-            ColumnType::Char(6),
-            ColumnType::VarChar,
-            ColumnType::Binary(2),
-        ];
-        assert_eq!(
-            vec![1, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 6, 0, 0, 0, 255, 255, 255, 255, 2, 0, 0, 0],
-            column_widths(&columns)
-        );
     }
 }
