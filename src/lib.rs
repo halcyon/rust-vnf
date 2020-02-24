@@ -97,7 +97,8 @@ impl fmt::Display for FileHeader {
         writeln!(f, "header_area_length: {:X?}", self.header_area_length)?;
         writeln!(f, "version: {:X?}", self.version)?;
         writeln!(f, "filler: {:X?}", self.filler)?;
-        writeln!(f, "number_of_columns: {:X?}", self.number_of_columns)
+        writeln!(f, "number_of_columns: {:X?}", self.number_of_columns)?;
+        writeln!(f, "column_widths: {:X?},", self.column_widths)
     }
 }
 
@@ -168,6 +169,10 @@ mod tests {
                 ColumnType::VarChar,
                 ColumnType::Char(4),
             )))
+        );
+        println!(
+            "{}",
+            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4),))
         );
     }
 
