@@ -24,7 +24,7 @@ pub enum ColumnType {
     TimeTz,
     VarBinary,
     Binary(u32),
-    Numeric {precision: u32, scale: u32},
+    Numeric { precision: u32, scale: u32 },
     Interval,
 }
 
@@ -50,22 +50,6 @@ impl From<&ColumnType> for u32 {
         }
     }
 }
-
-// struct Row<'a> {
-//     columns: &'a [ColumnType],
-//     data: &'a [&'a [u8]],
-// }
-
-// impl<'a> fmt::Display for Row<'a> {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "[")?;
-//         self.columns.iter().zip(self.data).for_each(|(col, data)| {
-//             write!(f, "{:?} ", u32::from(col));
-//             write!(f, "{:?},", data);
-//         });
-//         write!(f, "]")
-//     }
-// }
 
 pub struct FileHeader {
     signature: [u8; 11],
@@ -122,6 +106,23 @@ fn _write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
     file.write_all(bytes)
 }
 
+struct Row {
+    data_length: u32,
+    null_bit_field: Vec<u8>,
+    data: Vec<u8>,
+}
+
+impl Row {
+    fn new(null_bit_field: Vec<u8>, data: Vec<u8>) -> Row {
+        Row {
+            data_length: data.len() as u32,
+            null_bit_field: null_bit_field,
+            data: data,
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,10 +144,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn new_file_header_with_numeric_should_panic() {
-        Vec::from(FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Numeric{precision: 38, scale: 0})));
+        Vec::from(FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Numeric { precision: 38, scale: 0 })));
     }
 
-        #[test]
+    #[test]
     fn new_file_header_with_column() {
         assert_eq!(
             vec!(
@@ -180,7 +181,7 @@ mod tests {
         );
         println!(
             "{}",
-            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4),))
+            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4), ))
         );
     }
 
@@ -248,5 +249,39 @@ mod tests {
         assert_eq!(14, u32::from(&ColumnType::Char(14)));
         assert_eq!(u32::MAX, u32::from(&ColumnType::VarBinary));
         assert_eq!(u32::MAX, u32::from(&ColumnType::VarChar));
+    }
+
+    // struct Row<'a> {
+    //     columns: &'a [ColumnType],
+    //     data: &'a [&'a [u8]],
+    // }
+
+    // impl<'a> fmt::Display for Row<'a> {
+    //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    //         write!(f, "[")?;
+    //         self.columns.iter().zip(self.data).for_each(|(col, data)| {
+    //             write!(f, "{:?} ", u32::from(col));
+    //             write!(f, "{:?},", data);
+    //         });
+    //         write!(f, "]")
+    //     }
+    // }
+
+
+    #[test]
+    fn write_row() {
+        let mut expected: Vec<u8> = vec!();
+        expected.extend_from_slice(&[10, 0, 0, 0]); // row length, excluding header
+        expected.extend_from_slice(&[0b10000000]); // null bitfield
+        expected.push(255); // column 1 value, true
+        expected.extend_from_slice(&[5, 0, 0, 0]); // length of "hello"
+        expected.extend_from_slice("hello".as_bytes()); // column 2 value
+
+        let row = Row::new {
+            null_bit_field: vec!(0),
+            data: vec!(255, 5, 0, 0, 0, 'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8),
+        };
+
+        assert_eq!(expected, row);
     }
 }
