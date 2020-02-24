@@ -11,7 +11,7 @@ pub const VERSION: [u8; 2] = [1, 0];
 pub const FILLER: u8 = 0;
 
 #[derive(Clone, Debug)]
-enum ColumnType {
+pub enum ColumnType {
     Integer,
     Float,
     Char(u32),
@@ -65,7 +65,7 @@ impl From<&ColumnType> for u32 {
 //     }
 // }
 
-struct FileHeader {
+pub struct FileHeader {
     signature: [u8; 11],
     header_area_length: [u8; 4],
     version: [u8; 2],
@@ -114,7 +114,7 @@ impl From<FileHeader> for Vec<u8> {
     }
 }
 
-fn write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
+fn _write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
     let mut file = File::create(file_name)?;
     file.write_all(bytes)
 }
