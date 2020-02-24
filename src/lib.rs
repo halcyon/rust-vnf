@@ -24,7 +24,7 @@ pub enum ColumnType {
     TimeTz,
     VarBinary,
     Binary(u32),
-    //TODO: Numeric {precision: i32, scale: i32},
+    Numeric {precision: u32, scale: u32},
     Interval,
 }
 
@@ -45,6 +45,8 @@ impl From<&ColumnType> for u32 {
             ColumnType::Char(length) | ColumnType::Binary(length) => length,
 
             ColumnType::VarChar | ColumnType::VarBinary => u32::MAX,
+
+            _ => panic!("{:?} not supported", column)
         }
     }
 }
@@ -97,7 +99,8 @@ impl fmt::Display for FileHeader {
         writeln!(f, "header_area_length: {:X?}", self.header_area_length)?;
         writeln!(f, "version: {:X?}", self.version)?;
         writeln!(f, "filler: {:X?}", self.filler)?;
-        writeln!(f, "number_of_columns: {:X?}", self.number_of_columns)
+        writeln!(f, "number_of_columns: {:X?}", self.number_of_columns)?;
+        writeln!(f, "column_widths: {:X?},", self.column_widths)
     }
 }
 
@@ -138,7 +141,13 @@ mod tests {
     }
 
     #[test]
-    fn new_file_header_with_one_column() {
+    #[should_panic]
+    fn new_file_header_with_numeric_should_panic() {
+        Vec::from(FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Numeric{precision: 38, scale: 0})));
+    }
+
+        #[test]
+    fn new_file_header_with_column() {
         assert_eq!(
             vec!(
                 78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
@@ -168,6 +177,10 @@ mod tests {
                 ColumnType::VarChar,
                 ColumnType::Char(4),
             )))
+        );
+        println!(
+            "{}",
+            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4),))
         );
     }
 
