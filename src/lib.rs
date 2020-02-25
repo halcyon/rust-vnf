@@ -23,8 +23,8 @@ pub enum ColumnType {
     Time,
     TimeTz,
     VarBinary,
-    Binary(u32),
-    Numeric { precision: u32, scale: u32 },
+    Binary,
+    Numeric { precision: u32, _scale: u32 },
     Interval,
 }
 
@@ -32,6 +32,7 @@ impl From<&ColumnType> for u32 {
     fn from(column: &ColumnType) -> Self {
         match *column {
             ColumnType::Boolean => 1,
+            ColumnType::Binary => 3,
 
             ColumnType::Integer
             | ColumnType::Float
@@ -42,13 +43,17 @@ impl From<&ColumnType> for u32 {
             | ColumnType::TimeTz
             | ColumnType::Interval => 8,
 
-            ColumnType::Char(length) | ColumnType::Binary(length) => length,
+            ColumnType::Char(length) => length,
 
             ColumnType::VarChar | ColumnType::VarBinary => u32::MAX,
 
-            _ => panic!("{:?} not supported", column),
+            ColumnType::Numeric { precision, _scale } => numeric_width(precision),
         }
     }
+}
+
+fn numeric_width(precision: u32) -> u32 {
+    ((precision / 19) + 1) * 8
 }
 
 pub struct FileHeader {
@@ -137,42 +142,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_numeric_width() {
+        assert_eq!(24, numeric_width(38));
+    }
+
+    #[test]
     fn new_file_header_with_no_columns() {
         assert_eq!(
-            vec!(
+            vec![
                 78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
                 5, 0, 0, 0, // header_area_length
                 1, 0, // VERSION
                 0, // FILLER
                 0, 0 // number_of_columns
-            ),
+            ],
             Vec::from(FileHeader::new(vec!()))
         );
     }
 
     #[test]
-    #[should_panic]
-    fn new_file_header_with_numeric_should_panic() {
-        Vec::from(FileHeader::new(vec![
-            ColumnType::VarChar,
-            ColumnType::Numeric {
-                precision: 38,
-                scale: 0,
-            },
-        ]));
-    }
-
-    #[test]
     fn new_file_header_with_column() {
         assert_eq!(
-            vec!(
+            vec![
                 78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
                 9, 0, 0, 0, // header_area_length
                 1, 0, // VERSION
                 0, // FILLER
                 1, 0, // number_of_columns
                 255, 255, 255, 255, // column_widths
-            ),
+            ],
             Vec::from(FileHeader::new(vec!(ColumnType::VarChar)))
         );
     }
@@ -180,7 +178,7 @@ mod tests {
     #[test]
     fn new_file_header_with_two_columns() {
         assert_eq!(
-            vec!(
+            vec![
                 78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
                 13, 0, 0, 0, // header_area_length
                 1, 0, // VERSION
@@ -188,7 +186,7 @@ mod tests {
                 2, 0, // number_of_columns
                 255, 255, 255, 255, // column_widths
                 4, 0, 0, 0, // column_widths
-            ),
+            ],
             Vec::from(FileHeader::new(vec!(
                 ColumnType::VarChar,
                 ColumnType::Char(4),
@@ -257,7 +255,7 @@ mod tests {
     #[test]
     fn u32_from_column_types() {
         assert_eq!(1, u32::from(&ColumnType::Boolean));
-        assert_eq!(3, u32::from(&ColumnType::Binary(3)));
+        assert_eq!(3, u32::from(&ColumnType::Binary));
         assert_eq!(8, u32::from(&ColumnType::Integer));
         assert_eq!(8, u32::from(&ColumnType::Interval));
         assert_eq!(8, u32::from(&ColumnType::Time));
@@ -300,4 +298,49 @@ mod tests {
 
         assert_eq!(expected, Vec::from(row));
     }
+
+    // #[test]
+    // fn example() {
+    //     let expected = vec![
+    //         0x4E, 0x41, 0x54, 0x49, 0x56, 0x45, 0x0A, 0xFF, 0x0D, 0x0A, 0x00, 0x3D, 0x00, 0x00,
+    //         0x00, 0x01, 0x00, 0x00, 0x0E, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+    //         0x0A, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00,
+    //         0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+    //         0x08, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x03, 0x00, 0x00, 0x00, 0x18, 0x00,
+    //         0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+    //         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC3, 0xF5, 0x28, 0x5C, 0x8F, 0xC2, 0xF1, 0xBF,
+    //         0x6F, 0x6E, 0x65, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x03, 0x00, 0x00, 0x00,
+    //         0x4F, 0x4E, 0x45, 0x01, 0x9A, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x30, 0x85,
+    //         0xB3, 0x4F, 0x7E, 0xE7, 0xFF, 0xFF, 0x40, 0x1F, 0x3E, 0x64, 0xE8, 0xE3, 0xFF, 0xFF,
+    //         0xC0, 0x2E, 0x98, 0xFF, 0x05, 0x00, 0x00, 0x00, 0xD0, 0x97, 0x01, 0x80, 0xF0, 0x79,
+    //         0xF0, 0x10, 0x02, 0x00, 0x00, 0x00, 0xAB, 0xCD, 0xAB, 0xCD, 0x00, 0x00, 0x00, 0x00,
+    //         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64,
+    //         0xD6, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x47, 0xA3, 0x8E, 0x02, 0x00, 0x00,
+    //         0x00,
+    //     ];
+    //     let mut example = Vec::from(FileHeader::new(vec![
+    //         ColumnType::Integer,
+    //         ColumnType::Float,
+    //         ColumnType::Char(10),
+    //         ColumnType::VarChar,
+    //         ColumnType::Boolean,
+    //         ColumnType::Date,
+    //         ColumnType::Timestamp,
+    //         ColumnType::TimestampTz,
+    //         ColumnType::Time,
+    //         ColumnType::TimeTz,
+    //         ColumnType::VarBinary,
+    //         ColumnType::Binary,
+    //         ColumnType::Numeric {
+    //             precision: 38,
+    //             scale: 0,
+    //         },
+    //         ColumnType::Interval,
+    //     ]));
+    //     let mut data = Vec::new();
+    //     data.extend(1u64.to_le_bytes().to_vec());
+    //     let row = Vec::from(Row::new(vec![0], data));
+    //     example.extend(row);
+    //     assert_eq!(expected, example);
+    // }
 }
