@@ -46,7 +46,7 @@ impl From<&ColumnType> for u32 {
 
             ColumnType::VarChar | ColumnType::VarBinary => u32::MAX,
 
-            _ => panic!("{:?} not supported", column)
+            _ => panic!("{:?} not supported", column),
         }
     }
 }
@@ -106,14 +106,14 @@ fn _write_bytes(file_name: &str, bytes: &[u8]) -> Result<(), std::io::Error> {
     file.write_all(bytes)
 }
 
-struct Row {
+pub struct Row {
     data_length: u32,
     null_bit_field: Vec<u8>,
     data: Vec<u8>,
 }
 
 impl Row {
-    fn new(null_bit_field: Vec<u8>, data: Vec<u8>) -> Row {
+    pub fn new(null_bit_field: Vec<u8>, data: Vec<u8>) -> Row {
         Row {
             data_length: data.len() as u32,
             null_bit_field: null_bit_field,
@@ -122,6 +122,15 @@ impl Row {
     }
 }
 
+impl From<Row> for Vec<u8> {
+    fn from(row: Row) -> Self {
+        let mut vec: Vec<u8> = Vec::new();
+        vec.extend_from_slice(&row.data_length.to_le_bytes());
+        vec.extend_from_slice(&row.null_bit_field);
+        vec.extend_from_slice(&row.data);
+        vec
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -144,7 +153,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn new_file_header_with_numeric_should_panic() {
-        Vec::from(FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Numeric { precision: 38, scale: 0 })));
+        Vec::from(FileHeader::new(vec![
+            ColumnType::VarChar,
+            ColumnType::Numeric {
+                precision: 38,
+                scale: 0,
+            },
+        ]));
     }
 
     #[test]
@@ -181,7 +196,7 @@ mod tests {
         );
         println!(
             "{}",
-            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4), ))
+            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4),))
         );
     }
 
@@ -267,21 +282,22 @@ mod tests {
     //     }
     // }
 
-
     #[test]
     fn write_row() {
-        let mut expected: Vec<u8> = vec!();
+        let mut expected: Vec<u8> = Vec::new();
         expected.extend_from_slice(&[10, 0, 0, 0]); // row length, excluding header
         expected.extend_from_slice(&[0b10000000]); // null bitfield
         expected.push(255); // column 1 value, true
         expected.extend_from_slice(&[5, 0, 0, 0]); // length of "hello"
         expected.extend_from_slice("hello".as_bytes()); // column 2 value
 
-        let row = Row::new {
-            null_bit_field: vec!(0),
-            data: vec!(255, 5, 0, 0, 0, 'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8),
-        };
+        let row = Row::new(
+            vec![128],
+            vec![
+                255, 5, 0, 0, 0, 'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8,
+            ],
+        );
 
-        assert_eq!(expected, row);
+        assert_eq!(expected, Vec::from(row));
     }
 }
