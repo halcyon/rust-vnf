@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let expected = vec![
+        let _expected = vec![
             0x4E, 0x41, 0x54, 0x49, 0x56, 0x45, 0x0A, 0xFF, 0x0D, 0x0A, 0x00, 0x3D, 0x00, 0x00,
             0x00, 0x01, 0x00, 0x00, 0x0E, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
             0x0A, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00,
@@ -301,7 +301,7 @@ mod tests {
             0xD6, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x47, 0xA3, 0x8E, 0x02, 0x00, 0x00,
             0x00,
         ];
-        let mut example = Vec::from(FileHeader::new(vec![
+        let cols = vec![
             ColumnType::Integer,
             ColumnType::Float,
             ColumnType::Char(10),
@@ -319,15 +319,38 @@ mod tests {
                 _scale: 0,
             },
             ColumnType::Interval,
-        ]));
+        ];
+        let mut example = Vec::from(FileHeader::new(cols.clone()));
         let mut data = Vec::new();
         data.extend(1u64.to_le_bytes().to_vec());
         data.extend((-1.11f64).to_le_bytes().to_vec());
         data.extend("one       ".as_bytes());
+        data.extend(("ONE".len() as u32).to_le_bytes().to_vec());
         data.extend("ONE".as_bytes());
-        data.extend(vec![0x01]);
-        let row = Vec::from(Row::new(vec![0], data));
+        data.extend((0i64 - 354).to_le_bytes().to_vec());
+        let row = Vec::from(Row::new(vec![0, 0], data.clone()));
         example.extend(row);
-        assert_eq!(expected, example);
+
+        assert_eq!(&SIGNATURE, &example[0..11]);
+        assert_eq!(
+            ((4 * cols.len() + 5) as u32).to_le_bytes(),
+            &example[11..15]
+        );
+        assert_eq!(&VERSION, &example[15..17]);
+        assert_eq!(&FILLER, &example[17]);
+        assert_eq!((cols.len() as u16).to_le_bytes(), &example[18..20]);
+        assert_eq!(
+            vec![
+                8u8, 0, 0, 0, 8, 0, 0, 0, 10, 0, 0, 0, 255, 255, 255, 255, 1, 0, 0, 0, 8, 0, 0, 0,
+                8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 255, 255, 255, 255, 3, 0, 0, 0, 24,
+                0, 0, 0, 8, 0, 0, 0,
+            ]
+            .as_slice(),
+            &example[20..76]
+        );
+        //TODO: row header - row length
+        assert_eq!(0u16.to_le_bytes(), &example[80..82]);
+
+        // assert_eq!(expected, example);
     }
 }
