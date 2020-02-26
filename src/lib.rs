@@ -23,7 +23,7 @@ pub enum ColumnType {
     Time,
     TimeTz,
     VarBinary,
-    Binary,
+    Binary(u32),
     Numeric { precision: u32, _scale: u32 },
     Interval,
 }
@@ -32,7 +32,6 @@ impl From<&ColumnType> for u32 {
     fn from(column: &ColumnType) -> Self {
         match *column {
             ColumnType::Boolean => 1,
-            ColumnType::Binary => 3,
 
             ColumnType::Integer
             | ColumnType::Float
@@ -43,7 +42,7 @@ impl From<&ColumnType> for u32 {
             | ColumnType::TimeTz
             | ColumnType::Interval => 8,
 
-            ColumnType::Char(length) => length,
+            ColumnType::Char(length) | ColumnType::Binary(length) => length,
 
             ColumnType::VarChar | ColumnType::VarBinary => u32::MAX,
 
@@ -255,7 +254,7 @@ mod tests {
     #[test]
     fn u32_from_column_types() {
         assert_eq!(1, u32::from(&ColumnType::Boolean));
-        assert_eq!(3, u32::from(&ColumnType::Binary));
+        assert_eq!(3, u32::from(&ColumnType::Binary(3)));
         assert_eq!(8, u32::from(&ColumnType::Integer));
         assert_eq!(8, u32::from(&ColumnType::Interval));
         assert_eq!(8, u32::from(&ColumnType::Time));
@@ -314,7 +313,7 @@ mod tests {
             ColumnType::Time,
             ColumnType::TimeTz,
             ColumnType::VarBinary,
-            ColumnType::Binary,
+            ColumnType::Binary(3),
             ColumnType::Numeric {
                 precision: 38,
                 _scale: 0,
