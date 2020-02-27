@@ -327,6 +327,7 @@ mod tests {
         data.extend("one       ".as_bytes());
         data.extend(("ONE".len() as u32).to_le_bytes().to_vec());
         data.extend("ONE".as_bytes());
+        data.push(1);
         data.extend((0i64 - 354).to_le_bytes().to_vec());
         let row = Vec::from(Row::new(vec![0, 0], data.clone()));
         example.extend(row);
@@ -350,6 +351,15 @@ mod tests {
         );
         //TODO: row header - row length
         assert_eq!(0u16.to_le_bytes(), &example[80..82]);
+        assert_eq!(&[1u8, 0, 0, 0, 0, 0, 0, 0], &example[82..90]);
+        assert_eq!((-1.11f64).to_le_bytes(), &example[90..98]);
+        assert_eq!("one       ".as_bytes(), &example[98..108]);
+        assert_eq!(("ONE".len() as u32).to_le_bytes(), &example[108..112]);
+        assert_eq!("ONE".as_bytes(), &example[112..115]);
+        assert_eq!(&1u8, &example[115]);
+
+
+
 
         // assert_eq!(expected, example);
     }
