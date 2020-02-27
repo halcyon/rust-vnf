@@ -6,6 +6,8 @@ use std::u8;
 use std::fs::File;
 use std::io::Write;
 
+use chrono::NaiveDate;
+
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
 pub const FILLER: u8 = 0;
@@ -134,6 +136,11 @@ impl From<Row> for Vec<u8> {
         vec.extend_from_slice(&row.data);
         vec
     }
+}
+
+pub fn days_since_vertica_epoch(date: NaiveDate) -> i64 {
+    let vertica_epoch_day = NaiveDate::from_ymd(2000, 1, 1);
+    (date - vertica_epoch_day).num_days()
 }
 
 #[cfg(test)]
@@ -328,7 +335,7 @@ mod tests {
         data.extend(("ONE".len() as u32).to_le_bytes().to_vec());
         data.extend("ONE".as_bytes());
         data.push(1);
-        data.extend((0i64 - 354).to_le_bytes().to_vec());
+        data.extend(days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8)).to_le_bytes().to_vec());
         let row = Vec::from(Row::new(vec![0, 0], data.clone()));
         example.extend(row);
 
@@ -356,11 +363,22 @@ mod tests {
         assert_eq!("one       ".as_bytes(), &example[98..108]);
         assert_eq!(("ONE".len() as u32).to_le_bytes(), &example[108..112]);
         assert_eq!("ONE".as_bytes(), &example[112..115]);
-        assert_eq!(&1u8, &example[115]);
-
-
-
+        assert_eq!(&[1u8], &example[115..116]);
+        assert_eq!((-358i64).to_le_bytes(), &example[116..124]);
 
         // assert_eq!(expected, example);
+    }
+
+    #[test]
+    fn test_days_since_vertica_epoch() {
+        assert_eq!(
+            -358,
+            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
+        );
+        assert_eq!(0, days_since_vertica_epoch(NaiveDate::from_ymd(2000, 1, 1)));
+        assert_eq!(
+            366,
+            days_since_vertica_epoch(NaiveDate::from_ymd(2001, 1, 1))
+        );
     }
 }
