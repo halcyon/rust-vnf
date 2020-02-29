@@ -6,7 +6,7 @@ use std::u8;
 use std::fs::File;
 use std::io::Write;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
@@ -138,12 +138,23 @@ impl From<Row> for Vec<u8> {
     }
 }
 
-struct VerticaDate(NaiveDate);
-type VerticaEpochDays = i64;
+pub struct VerticaDate {
+    duration: Duration,
+}
 
-impl From<VerticaDate> for VerticaEpochDays {
-    fn from(date: VerticaDate) -> Self {
-        (date.0 - NaiveDate::from_ymd(2000, 1, 1)).num_days()
+impl VerticaDate {
+    pub fn new(year: i32, month: u32, day: u32) -> VerticaDate {
+        VerticaDate {
+            duration: NaiveDate::from_ymd(year, month, day) - NaiveDate::from_ymd(2000, 1, 1),
+        }
+    }
+
+    pub fn num_days(self) -> i64 {
+        self.duration.num_days()
+    }
+
+    pub fn num_microseconds(self) -> Option<i64> {
+        self.duration.num_microseconds()
     }
 }
 
@@ -158,18 +169,9 @@ mod tests {
 
     #[test]
     fn test_vertica_epoch_days() {
-        assert_eq!(
-            -358,
-            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(1999, 1, 8)))
-        );
-        assert_eq!(
-            0,
-            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(2000, 1, 1)))
-        );
-        assert_eq!(
-            366,
-            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(2001, 1, 1)))
-        );
+        assert_eq!(-358, VerticaDate::new(1999, 1, 8).num_days());
+        assert_eq!(0, VerticaDate::new(2000, 1, 1).num_days());
+        assert_eq!(366, VerticaDate::new(2001, 1, 1).num_days());
     }
 
     #[test]
@@ -356,7 +358,8 @@ mod tests {
         data.extend("ONE".as_bytes());
         data.push(1);
         data.extend(
-            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(1999, 1, 8)))
+            VerticaDate::new(1999, 1, 8)
+                .num_days()
                 .to_le_bytes()
                 .to_vec(),
         );
@@ -389,7 +392,6 @@ mod tests {
         assert_eq!("ONE".as_bytes(), &example[112..115]); // Var Char
         assert_eq!(&[1u8], &example[115..116]); // Boolean
         assert_eq!((-358i64).to_le_bytes(), &example[116..124]); // Date - 1999-01-08
-
 
         // assert_eq!(expected, example);
     }
