@@ -6,7 +6,7 @@ use std::u8;
 use std::fs::File;
 use std::io::Write;
 
-use chrono::{Duration, NaiveDate};
+use chrono::{NaiveDate, Duration};
 
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
@@ -139,24 +139,62 @@ impl From<Row> for Vec<u8> {
 }
 
 pub struct VerticaDate {
-    duration: Duration,
+    year: i32,
+    month: u32,
+    day: u32,
+    hour: u32,
+    min: u32,
+    sec: u32,
 }
 
 impl VerticaDate {
-    pub fn new(year: i32, month: u32, day: u32) -> VerticaDate {
+    pub fn from_ymd(year: i32, month: u32, day: u32) -> VerticaDate {
         VerticaDate {
-            duration: NaiveDate::from_ymd(year, month, day) - NaiveDate::from_ymd(2000, 1, 1),
+            year,
+            month,
+            day,
+            hour: 0,
+            min: 0,
+            sec: 0,
+        }
+    }
+
+    pub fn and_hms(self, hour: u32, min: u32, sec: u32) -> VerticaDate {
+        VerticaDate {
+            year: self.year,
+            month: self.month,
+            day: self.day,
+            hour,
+            min,
+            sec
         }
     }
 
     pub fn num_days(self) -> i64 {
-        self.duration.num_days()
+        self.duration().num_days()
     }
 
     pub fn num_microseconds(self) -> Option<i64> {
-        self.duration.num_microseconds()
+        self.duration().num_microseconds()
+    }
+
+    fn duration(self) -> Duration {
+        (NaiveDate::from_ymd(self.year, self.month, self.day).and_hms(self.hour, self.min, self.sec) - NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0))
     }
 }
+
+// pub struct VerticaDateTime {
+//     duration: Duration,
+// }
+
+// impl VerticaDateTime {
+//     pub fn new(year: i32, month: u32, day: u32, hour: u32, minute: u32, second: u32) -> VerticaDate {
+//         VerticaDate {
+//             duration: NaiveDate::from_ymd(year, month, day).and_hms(hour, minute, second) -
+//                 NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0),
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -169,9 +207,9 @@ mod tests {
 
     #[test]
     fn test_vertica_epoch_days() {
-        assert_eq!(-358, VerticaDate::new(1999, 1, 8).num_days());
-        assert_eq!(0, VerticaDate::new(2000, 1, 1).num_days());
-        assert_eq!(366, VerticaDate::new(2001, 1, 1).num_days());
+        assert_eq!(-358, VerticaDate::from_ymd(1999, 1, 8).num_days());
+        assert_eq!(0, VerticaDate::from_ymd(2000, 1, 1).num_days());
+        assert_eq!(366, VerticaDate::from_ymd(2001, 1, 1).num_days());
     }
 
     #[test]
@@ -358,11 +396,20 @@ mod tests {
         data.extend("ONE".as_bytes());
         data.push(1);
         data.extend(
-            VerticaDate::new(1999, 1, 8)
+            VerticaDate::from_ymd(1999, 1, 8)
                 .num_days()
                 .to_le_bytes()
                 .to_vec(),
         );
+        data.extend(
+            VerticaDate::from_ymd(1999, 2, 23)
+                .and_hms(3, 11, 52.35)
+                .num_microseconds()
+                .unwrap()
+                .to_le_bytes()
+                .to_vec(),
+        );
+
         let row = Vec::from(Row::new(vec![0, 0], data.clone()));
         example.extend(row);
 
@@ -392,6 +439,7 @@ mod tests {
         assert_eq!("ONE".as_bytes(), &example[112..115]); // Var Char
         assert_eq!(&[1u8], &example[115..116]); // Boolean
         assert_eq!((-358i64).to_le_bytes(), &example[116..124]); // Date - 1999-01-08
+
 
         // assert_eq!(expected, example);
     }
