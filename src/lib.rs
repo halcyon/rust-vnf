@@ -138,9 +138,13 @@ impl From<Row> for Vec<u8> {
     }
 }
 
-pub fn days_since_vertica_epoch(date: NaiveDate) -> i64 {
-    let vertica_epoch_day = NaiveDate::from_ymd(2000, 1, 1);
-    (date - vertica_epoch_day).num_days()
+struct VerticaDate(NaiveDate);
+type VerticaEpochDays = i64;
+
+impl From<VerticaDate> for VerticaEpochDays {
+    fn from(date: VerticaDate) -> Self {
+        (date.0 - NaiveDate::from_ymd(2000, 1, 1)).num_days()
+    }
 }
 
 #[cfg(test)]
@@ -153,15 +157,18 @@ mod tests {
     }
 
     #[test]
-    fn test_days_since_vertica_epoch() {
+    fn test_vertica_epoch_days() {
         assert_eq!(
             -358,
-            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
+            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(1999, 1, 8)))
         );
-        assert_eq!(0, days_since_vertica_epoch(NaiveDate::from_ymd(2000, 1, 1)));
+        assert_eq!(
+            0,
+            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(2000, 1, 1)))
+        );
         assert_eq!(
             366,
-            days_since_vertica_epoch(NaiveDate::from_ymd(2001, 1, 1))
+            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(2001, 1, 1)))
         );
     }
 
@@ -349,7 +356,7 @@ mod tests {
         data.extend("ONE".as_bytes());
         data.push(1);
         data.extend(
-            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
+            VerticaEpochDays::from(VerticaDate(NaiveDate::from_ymd(1999, 1, 8)))
                 .to_le_bytes()
                 .to_vec(),
         );
