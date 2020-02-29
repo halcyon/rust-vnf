@@ -153,6 +153,19 @@ mod tests {
     }
 
     #[test]
+    fn test_days_since_vertica_epoch() {
+        assert_eq!(
+            -358,
+            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
+        );
+        assert_eq!(0, days_since_vertica_epoch(NaiveDate::from_ymd(2000, 1, 1)));
+        assert_eq!(
+            366,
+            days_since_vertica_epoch(NaiveDate::from_ymd(2001, 1, 1))
+        );
+    }
+
+    #[test]
     fn new_file_header_with_no_columns() {
         assert_eq!(
             vec![
@@ -335,7 +348,11 @@ mod tests {
         data.extend(("ONE".len() as u32).to_le_bytes().to_vec());
         data.extend("ONE".as_bytes());
         data.push(1);
-        data.extend(days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8)).to_le_bytes().to_vec());
+        data.extend(
+            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
+                .to_le_bytes()
+                .to_vec(),
+        );
         let row = Vec::from(Row::new(vec![0, 0], data.clone()));
         example.extend(row);
 
@@ -357,28 +374,16 @@ mod tests {
             &example[20..76]
         );
         //TODO: row header - row length
-        assert_eq!(0u16.to_le_bytes(), &example[80..82]);
-        assert_eq!(&[1u8, 0, 0, 0, 0, 0, 0, 0], &example[82..90]);
-        assert_eq!((-1.11f64).to_le_bytes(), &example[90..98]);
-        assert_eq!("one       ".as_bytes(), &example[98..108]);
-        assert_eq!(("ONE".len() as u32).to_le_bytes(), &example[108..112]);
-        assert_eq!("ONE".as_bytes(), &example[112..115]);
-        assert_eq!(&[1u8], &example[115..116]);
-        assert_eq!((-358i64).to_le_bytes(), &example[116..124]);
+        assert_eq!(0u16.to_le_bytes(), &example[80..82]); // Bit field
+        assert_eq!(&[1u8, 0, 0, 0, 0, 0, 0, 0], &example[82..90]); // Integer
+        assert_eq!((-1.11f64).to_le_bytes(), &example[90..98]); // Float
+        assert_eq!("one       ".as_bytes(), &example[98..108]); // Char(10)
+        assert_eq!(("ONE".len() as u32).to_le_bytes(), &example[108..112]); // Number of bytes in following VarChar
+        assert_eq!("ONE".as_bytes(), &example[112..115]); // Var Char
+        assert_eq!(&[1u8], &example[115..116]); // Boolean
+        assert_eq!((-358i64).to_le_bytes(), &example[116..124]); // Date - 1999-01-08
+
 
         // assert_eq!(expected, example);
-    }
-
-    #[test]
-    fn test_days_since_vertica_epoch() {
-        assert_eq!(
-            -358,
-            days_since_vertica_epoch(NaiveDate::from_ymd(1999, 1, 8))
-        );
-        assert_eq!(0, days_since_vertica_epoch(NaiveDate::from_ymd(2000, 1, 1)));
-        assert_eq!(
-            366,
-            days_since_vertica_epoch(NaiveDate::from_ymd(2001, 1, 1))
-        );
     }
 }
