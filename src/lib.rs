@@ -122,8 +122,8 @@ impl Row {
     pub fn new(null_bit_field: Vec<u8>, data: Vec<u8>) -> Row {
         Row {
             data_length: data.len() as u32,
-            null_bit_field: null_bit_field,
-            data: data,
+            null_bit_field,
+            data,
         }
     }
 }
@@ -139,18 +139,18 @@ impl From<Row> for Vec<u8> {
 }
 
 trait VerticaDate {
-    fn to_y2k_epoch_duration(self) -> Duration;
+    fn to_y2k_epoch_duration(&self) -> Duration;
 }
 
 impl VerticaDate for NaiveDate {
-    fn to_y2k_epoch_duration(self) -> Duration {
-        self - NaiveDate::from_ymd(2000, 1, 1)
+    fn to_y2k_epoch_duration(&self) -> Duration {
+        *self - NaiveDate::from_ymd(2000, 1, 1)
     }
 }
 
 impl VerticaDate for NaiveDateTime {
-    fn to_y2k_epoch_duration(self) -> Duration {
-        self - NaiveDate::from_ymd(2000, 1, 1).and_hms_micro(0, 0, 0, 0)
+    fn to_y2k_epoch_duration(&self) -> Duration {
+        *self - NaiveDate::from_ymd(2000, 1, 1).and_hms_micro(0, 0, 0, 0)
     }
 }
 
