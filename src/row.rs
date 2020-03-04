@@ -32,7 +32,7 @@ mod tests {
     use super::*;
     use crate::column::ColumnType;
     use crate::date::VerticaDate;
-    use crate::file_header::{FileHeader, FILLER, SIGNATURE, VERSION};
+    use crate::file_header::{FILLER, SIGNATURE, VERSION};
     use chrono::NaiveDate;
 
     #[test]
@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn example() {
-        let _expected = vec![
+        let expected = vec![
             0x4E, 0x41, 0x54, 0x49, 0x56, 0x45, 0x0A, 0xFF, 0x0D, 0x0A, 0x00, 0x3D, 0x00, 0x00,
             0x00, 0x01, 0x00, 0x00, 0x0E, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
             0x0A, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00,
@@ -92,75 +92,58 @@ mod tests {
             },
             ColumnType::Interval,
         ];
-        let mut example = Vec::from(FileHeader::new(cols.clone()));
-        let mut data = Vec::new();
-        data.extend(1u64.to_le_bytes().to_vec());
-        data.extend((-1.11f64).to_le_bytes().to_vec());
-        data.extend("one       ".as_bytes());
-        data.extend(("ONE".len() as u32).to_le_bytes().to_vec());
-        data.extend("ONE".as_bytes());
-        data.push(1);
-        data.extend(
-            NaiveDate::from_ymd(1999, 1, 8)
-                .to_y2k_epoch_duration()
-                .num_days()
-                .to_le_bytes()
-                .to_vec(),
-        );
-        data.extend(
-            NaiveDate::from_ymd(1999, 2, 23)
-                .and_hms_micro(3, 11, 52, 350_000)
-                .to_y2k_epoch_duration()
-                .num_microseconds()
-                .unwrap()
-                .to_le_bytes()
-                .to_vec(),
-        );
 
-        let row = Vec::from(Row::new(vec![0, 0], data.clone()));
-        example.extend(row);
-
-        assert_eq!(&SIGNATURE, &example[0..11]);
+        assert_eq!(&expected[0..11], &SIGNATURE);
         assert_eq!(
-            ((4 * cols.len() + 5) as u32).to_le_bytes(),
-            &example[11..15]
+            expected[11..15],
+            ((4 * cols.len() + 5) as u32).to_le_bytes()
         );
-        assert_eq!(&VERSION, &example[15..17]);
-        assert_eq!(&FILLER, &example[17]);
-        assert_eq!((cols.len() as u16).to_le_bytes(), &example[18..20]);
+        assert_eq!(&expected[15..17], &VERSION);
+        assert_eq!(&expected[17], &FILLER);
+        assert_eq!(expected[18..20], (cols.len() as u16).to_le_bytes());
         assert_eq!(
+            &expected[20..76],
             vec![
                 8u8, 0, 0, 0, 8, 0, 0, 0, 10, 0, 0, 0, 255, 255, 255, 255, 1, 0, 0, 0, 8, 0, 0, 0,
                 8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 255, 255, 255, 255, 3, 0, 0, 0, 24,
                 0, 0, 0, 8, 0, 0, 0,
             ]
-            .as_slice(),
-            &example[20..76]
+            .as_slice()
         );
         //TODO: row header - row length
-        assert_eq!(0u16.to_le_bytes(), &example[80..82]); // Bit field
-        assert_eq!(&[1u8, 0, 0, 0, 0, 0, 0, 0], &example[82..90]); // Integer
-        assert_eq!((-1.11f64).to_le_bytes(), &example[90..98]); // Float
-        assert_eq!("one       ".as_bytes(), &example[98..108]); // Char(10)
-        assert_eq!(("ONE".len() as u32).to_le_bytes(), &example[108..112]); // Number of bytes in following VarChar
-        assert_eq!("ONE".as_bytes(), &example[112..115]); // Var Char
-        assert_eq!(&[1u8], &example[115..116]); // Boolean
+        assert_eq!(expected[80..82], 0u16.to_le_bytes()); // Bit field
+        assert_eq!(&expected[82..90], &[1u8, 0, 0, 0, 0, 0, 0, 0]); // Integer
+        assert_eq!(expected[90..98], (-1.11f64).to_le_bytes()); // Float
+        assert_eq!(&expected[98..108], "one       ".as_bytes()); // Char(10)
+        assert_eq!(expected[108..112], ("ONE".len() as u32).to_le_bytes()); // Number of bytes in following VarChar
+        assert_eq!(&expected[112..115], "ONE".as_bytes()); // Var Char
+        assert_eq!(&expected[115..116], &[1u8]); // Boolean
         assert_eq!(
+            &expected[116..124],
             NaiveDate::from_ymd(1999, 1, 8)
                 .to_y2k_epoch_duration()
                 .num_days()
-                .to_le_bytes(),
-            &example[116..124]
+                .to_le_bytes()
         ); // Date - 1999-01-08
 
         assert_eq!(
+            &expected[124..132],
             NaiveDate::from_ymd(1999, 2, 23)
                 .and_hms_micro(3, 11, 52, 350_000)
                 .to_y2k_epoch_duration()
                 .num_microseconds()
                 .unwrap()
-                .to_le_bytes(),
-            &example[124..132]
+                .to_le_bytes()
         ); // TIMESTAMP - 1999-02-23 03:11:52.35
+
+        assert_eq!(
+            &expected[132..140],
+            NaiveDate::from_ymd(1999, 1, 8)
+                .and_hms(12, 4, 37)
+                .to_y2k_epoch_duration()
+                .num_microseconds()
+                .unwrap()
+                .to_le_bytes()
+        ); // TIMESTAMPTZ - 1999-01-08 07:04:37-05
     }
 }
