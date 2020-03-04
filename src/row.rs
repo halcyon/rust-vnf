@@ -33,7 +33,7 @@ mod tests {
     use crate::column::ColumnType;
     use crate::date::VerticaDate;
     use crate::file_header::{FILLER, SIGNATURE, VERSION};
-    use chrono::NaiveDate;
+    use chrono::{NaiveDate, NaiveTime, Timelike};
 
     #[test]
     fn write_row() {
@@ -145,5 +145,12 @@ mod tests {
                 .unwrap()
                 .to_le_bytes()
         ); // TIMESTAMPTZ - 1999-01-08 07:04:37-05
+
+        assert_eq!(
+            &expected[140..148],
+            (NaiveTime::from_hms(7, 9, 23).num_seconds_from_midnight() as u64 * 1_000_000u64)
+                .to_le_bytes()
+        ); // TIME - 07:09:23
+        // TIMETZ - 15:12:34-05
     }
 }
