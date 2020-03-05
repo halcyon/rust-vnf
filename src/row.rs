@@ -31,7 +31,7 @@ impl From<Row> for Vec<u8> {
 mod tests {
     use super::*;
     use crate::column::ColumnType;
-    use crate::date::VerticaDate;
+    use crate::date::{timetz, VerticaDate};
     use crate::file_header::{FILLER, SIGNATURE, VERSION};
     use chrono::{NaiveDate, NaiveTime, Timelike};
 
@@ -151,6 +151,7 @@ mod tests {
             (NaiveTime::from_hms(7, 9, 23).num_seconds_from_midnight() as u64 * 1_000_000u64)
                 .to_le_bytes()
         ); // TIME - 07:09:23
-        // TIMETZ - 15:12:34-05
+
+        assert_eq!(timetz(15, 12, 34, -5).to_le_bytes(), &expected[148..156]); // TIMETZ - 15:12:34-05
     }
 }
