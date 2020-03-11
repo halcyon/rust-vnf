@@ -1,5 +1,5 @@
-mod column;
-mod date;
+pub mod column;
+pub mod date;
 mod file;
-mod file_header;
-mod row;
+pub mod file_header;
+pub mod row;
