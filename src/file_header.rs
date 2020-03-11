@@ -17,7 +17,7 @@ pub struct FileHeader {
 }
 
 impl FileHeader {
-    pub fn new(columns: Vec<ColumnType>) -> FileHeader {
+    pub fn new(columns: &[ColumnType]) -> FileHeader {
         FileHeader {
             signature: SIGNATURE,
             header_area_length: ((4 * columns.len() + 5) as u32).to_le_bytes(),
@@ -25,7 +25,6 @@ impl FileHeader {
             filler: FILLER,
             number_of_columns: (columns.len() as u16).to_le_bytes(),
             column_widths: columns
-                .as_slice()
                 .iter()
                 .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
                 .collect(),
@@ -71,7 +70,7 @@ mod tests {
                 0, // FILLER
                 0, 0 // number_of_columns
             ],
-            Vec::from(FileHeader::new(vec!()))
+            Vec::from(FileHeader::new(&[]))
         );
     }
 
@@ -86,7 +85,7 @@ mod tests {
                 1, 0, // number_of_columns
                 255, 255, 255, 255, // column_widths
             ],
-            Vec::from(FileHeader::new(vec!(ColumnType::VarChar)))
+            Vec::from(FileHeader::new(&[ColumnType::VarChar]))
         );
     }
 
@@ -102,14 +101,11 @@ mod tests {
                 255, 255, 255, 255, // column_widths
                 4, 0, 0, 0, // column_widths
             ],
-            Vec::from(FileHeader::new(vec!(
-                ColumnType::VarChar,
-                ColumnType::Char(4),
-            )))
+            Vec::from(FileHeader::new(&[ColumnType::VarChar, ColumnType::Char(4)]))
         );
         println!(
             "{}",
-            FileHeader::new(vec!(ColumnType::VarChar, ColumnType::Char(4),))
+            FileHeader::new(&[ColumnType::VarChar, ColumnType::Char(4)])
         );
     }
 
@@ -127,7 +123,7 @@ mod tests {
         expected.extend(column_widths);
         assert_eq!(
             expected,
-            Vec::from(FileHeader::new(vec!(ColumnType::VarBinary; 255)))
+            Vec::from(FileHeader::new(&[ColumnType::VarBinary; 255]))
         );
     }
 
@@ -145,7 +141,7 @@ mod tests {
         expected.extend(column_widths);
         assert_eq!(
             expected,
-            Vec::from(FileHeader::new(vec!(ColumnType::VarBinary; 256)))
+            Vec::from(FileHeader::new(&[ColumnType::VarBinary; 256]))
         );
     }
 
@@ -163,7 +159,7 @@ mod tests {
         expected.extend(column_widths);
         assert_eq!(
             expected,
-            Vec::from(FileHeader::new(vec!(ColumnType::VarBinary; 257)))
+            Vec::from(FileHeader::new(&[ColumnType::VarBinary; 257]))
         );
     }
 }

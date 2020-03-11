@@ -1,6 +1,6 @@
 use std::u32;
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ColumnType {
     Integer,
     Float,
