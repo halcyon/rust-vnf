@@ -2,20 +2,15 @@
 
 @startuml
 
-
-component "Syslog\nProducer" as producer
-component "Syslog\nConsumer" as consumer
-component "VNF Crate" as vnf
+actor "Application" as app
+component "Vertica Native File Creator" as creator
 collections "Vertica Native Files" as files
-component "VNF Loader" as loader
-database "Vertica" {
-    frame syslog_table
-}
+component "Vertica Native File Loader" as loader
+database "Vertica" as db
 
-producer --> consumer
-consumer -> vnf: uses
-consumer --> files: writes
+app -> creator : uses
+creator -> files : writes
 files --> loader
-loader --> syslog_table
+loader -left-> db : via copy
 
 @enduml
