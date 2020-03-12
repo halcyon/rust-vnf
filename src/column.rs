@@ -1,7 +1,7 @@
 use std::u32;
 
 #[derive(Copy, Clone, Debug)]
-pub enum ColumnType {
+pub enum Type {
     Integer,
     Float,
     Char(u32),
@@ -18,25 +18,25 @@ pub enum ColumnType {
     Interval,
 }
 
-impl From<&ColumnType> for u32 {
-    fn from(column: &ColumnType) -> Self {
+impl From<&Type> for u32 {
+    fn from(column: &Type) -> Self {
         match *column {
-            ColumnType::Boolean => 1,
+            Type::Boolean => 1,
 
-            ColumnType::Integer
-            | ColumnType::Float
-            | ColumnType::Date
-            | ColumnType::Timestamp
-            | ColumnType::TimestampTz
-            | ColumnType::Time
-            | ColumnType::TimeTz
-            | ColumnType::Interval => 8,
+            Type::Integer
+            | Type::Float
+            | Type::Date
+            | Type::Timestamp
+            | Type::TimestampTz
+            | Type::Time
+            | Type::TimeTz
+            | Type::Interval => 8,
 
-            ColumnType::Char(length) | ColumnType::Binary(length) => length,
+            Type::Char(length) | Type::Binary(length) => length,
 
-            ColumnType::VarChar | ColumnType::VarBinary => u32::MAX,
+            Type::VarChar | Type::VarBinary => u32::MAX,
 
-            ColumnType::Numeric { precision, _scale } => numeric_width(precision),
+            Type::Numeric { precision, _scale } => numeric_width(precision),
         }
     }
 }
@@ -56,13 +56,13 @@ mod tests {
 
     #[test]
     fn u32_from_column_types() {
-        assert_eq!(1, u32::from(&ColumnType::Boolean));
-        assert_eq!(3, u32::from(&ColumnType::Binary(3)));
-        assert_eq!(8, u32::from(&ColumnType::Integer));
-        assert_eq!(8, u32::from(&ColumnType::Interval));
-        assert_eq!(8, u32::from(&ColumnType::Time));
-        assert_eq!(14, u32::from(&ColumnType::Char(14)));
-        assert_eq!(u32::MAX, u32::from(&ColumnType::VarBinary));
-        assert_eq!(u32::MAX, u32::from(&ColumnType::VarChar));
+        assert_eq!(1, u32::from(&Type::Boolean));
+        assert_eq!(3, u32::from(&Type::Binary(3)));
+        assert_eq!(8, u32::from(&Type::Integer));
+        assert_eq!(8, u32::from(&Type::Interval));
+        assert_eq!(8, u32::from(&Type::Time));
+        assert_eq!(14, u32::from(&Type::Char(14)));
+        assert_eq!(u32::MAX, u32::from(&Type::VarBinary));
+        assert_eq!(u32::MAX, u32::from(&Type::VarChar));
     }
 }

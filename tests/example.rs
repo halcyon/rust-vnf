@@ -1,7 +1,7 @@
 use chrono::{NaiveDate, NaiveTime, Timelike};
-use vnf::column::ColumnType;
+use vnf::column::Type;
 use vnf::date::{VerticaDate, _timetz};
-use vnf::file_header::{FILLER, SIGNATURE, VERSION};
+use vnf::header::{FILLER, SIGNATURE, VERSION};
 
 #[test]
 fn example() {
@@ -22,23 +22,23 @@ fn example() {
         0x00, 0x00,
     ];
     let cols = vec![
-        ColumnType::Integer,
-        ColumnType::Float,
-        ColumnType::Char(10),
-        ColumnType::VarChar,
-        ColumnType::Boolean,
-        ColumnType::Date,
-        ColumnType::Timestamp,
-        ColumnType::TimestampTz,
-        ColumnType::Time,
-        ColumnType::TimeTz,
-        ColumnType::VarBinary,
-        ColumnType::Binary(3),
-        ColumnType::Numeric {
+        Type::Integer,
+        Type::Float,
+        Type::Char(10),
+        Type::VarChar,
+        Type::Boolean,
+        Type::Date,
+        Type::Timestamp,
+        Type::TimestampTz,
+        Type::Time,
+        Type::TimeTz,
+        Type::VarBinary,
+        Type::Binary(3),
+        Type::Numeric {
             precision: 38,
             _scale: 0,
         },
-        ColumnType::Interval,
+        Type::Interval,
     ];
 
     assert_eq!(&expected[0..11], &SIGNATURE);
