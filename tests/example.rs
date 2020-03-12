@@ -24,7 +24,7 @@ fn example() {
     let cols = vec![
         Type::Integer,
         Type::Float,
-        Type::Char(10),
+        Type::Char { len: 10 },
         Type::VarChar,
         Type::Boolean,
         Type::Date,
@@ -33,7 +33,7 @@ fn example() {
         Type::Time,
         Type::TimeTz,
         Type::VarBinary,
-        Type::Binary(3),
+        Type::Binary { len: 3 },
         Type::Numeric {
             precision: 38,
             _scale: 0,
@@ -47,7 +47,7 @@ fn example() {
         ((4 * cols.len() + 5) as u32).to_le_bytes()
     );
     assert_eq!(&expected[15..17], &VERSION);
-    assert_eq!(&expected[17], &FILLER);
+    assert_eq!(&expected[17..18], &FILLER);
     assert_eq!(expected[18..20], (cols.len() as u16).to_le_bytes());
     assert_eq!(
         &expected[20..76],

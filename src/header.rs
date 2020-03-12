@@ -5,23 +5,32 @@ use std::u8;
 
 pub const SIGNATURE: [u8; 11] = [78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0];
 pub const VERSION: [u8; 2] = [1, 0];
-pub const FILLER: u8 = 0;
+pub const FILLER: [u8; 1] = [0];
 
 pub fn to_header(types: &[Type]) -> Vec<u8> {
     let header_area_length = ((4 * types.len() + 5) as u32).to_le_bytes();
-    let number_of_columns = (types.len() as u16).to_le_bytes();
-    let column_widths: Vec<u8> = types
-        .iter()
-        .flat_map(|column| u32::from(column).to_le_bytes().to_vec())
-        .collect();
 
-    let mut vec: Vec<u8> = Vec::new();
+    let number_of_columns = (types.len() as u16).to_le_bytes();
+
+    let mut vec: Vec<u8> = Vec::with_capacity(
+        SIGNATURE.len()
+            + header_area_length.len()
+            + VERSION.len()
+            + FILLER.len()
+            + number_of_columns.len()
+            + std::mem::size_of::<u32>() * types.len(),
+    );
+
     vec.extend_from_slice(&SIGNATURE);
     vec.extend_from_slice(&header_area_length);
     vec.extend_from_slice(&VERSION);
-    vec.push(FILLER);
+    vec.extend_from_slice(&FILLER);
     vec.extend_from_slice(&number_of_columns);
-    vec.extend(&column_widths);
+
+    for t in types.iter() {
+        vec.extend_from_slice(&u32::from(t).to_le_bytes())
+    }
+
     vec
 }
 
@@ -70,7 +79,7 @@ mod tests {
                 255, 255, 255, 255, // column_widths
                 4, 0, 0, 0, // column_widths
             ],
-            to_header(&[Type::VarChar, Type::Char(4)])
+            to_header(&[Type::VarChar, Type::Char { len: 4 }])
         );
     }
 
@@ -83,7 +92,7 @@ mod tests {
         expected.extend(&SIGNATURE);
         expected.extend(&header_area_length);
         expected.extend(&VERSION);
-        expected.push(FILLER);
+        expected.extend(&FILLER);
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected, to_header(&[Type::VarBinary; 255]));
@@ -98,7 +107,7 @@ mod tests {
         expected.extend(&SIGNATURE);
         expected.extend(&header_area_length);
         expected.extend(&VERSION);
-        expected.push(FILLER);
+        expected.extend(&FILLER);
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected, to_header(&[Type::VarBinary; 256]));
@@ -113,7 +122,7 @@ mod tests {
         expected.extend(&SIGNATURE);
         expected.extend(&header_area_length);
         expected.extend(&VERSION);
-        expected.push(FILLER);
+        expected.extend(&FILLER);
         expected.extend(&number_of_columns);
         expected.extend(column_widths);
         assert_eq!(expected, to_header(&[Type::VarBinary; 257]));
