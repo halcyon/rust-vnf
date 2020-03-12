@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::convert::From;
 use std::u32;
 

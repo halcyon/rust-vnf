@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 
 pub trait VerticaDate {

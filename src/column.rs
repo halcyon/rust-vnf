@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::u32;
 
 #[derive(Copy, Clone, Debug)]

@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub mod column;
 pub mod date;
 mod file;
