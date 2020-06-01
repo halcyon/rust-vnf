@@ -6,7 +6,7 @@ use vnf::column::Value;
 use vnf::VnfWriter;
 
 fn main() {
-    let writer = VnfWriter::new(&[
+    let mut writer = VnfWriter::new(&[
         Type::Integer,
         Type::Boolean,
         Type::Char { len: 4 },

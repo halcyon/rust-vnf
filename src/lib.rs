@@ -52,33 +52,22 @@ fn push_null_values(buffer: &mut Vec<u8>, values: &[column::Value]) {
         })
 }
 
-fn push_row_data<'a>(
-    buffer: &'a mut Vec<u8>,
-    types: &[column::Type],
-    values: &[column::Value],
-) -> &'a mut Vec<u8> {
+fn push_row_data(buffer: &mut Vec<u8>, types: &[column::Type], values: &[column::Value]) {
     values
         .iter()
         .enumerate()
         .map(|(i, v)| (types[i], v))
-        .for_each(|(t, v)| t.append(buffer, v));
-    buffer
+        .for_each(|(t, v)| t.append(buffer, v))
 }
 
 fn build_row_data(types: &[column::Type], values: &[column::Value]) -> Vec<u8> {
     let mut buf = Vec::<u8>::new();
-    values
-        .iter()
-        .enumerate()
-        .map(|(i, v)| (types[i], v))
-        .fold(&mut buf, |buf, (t, v)| {
-            t.append(buf, v);
-            buf
-        });
+    push_row_data(&mut buf, types, values);
     buf
 }
 
 pub struct VnfWriter<'a> {
+    buf: Vec<u8>,
     column_types: &'a [column::Type],
     file_header: Vec<u8>,
 }
@@ -86,6 +75,7 @@ pub struct VnfWriter<'a> {
 impl<'a> VnfWriter<'a> {
     pub fn new(column_types: &[column::Type]) -> VnfWriter {
         VnfWriter {
+            buf: Vec::<u8>::new(),
             column_types,
             file_header: to_header(column_types),
         }
@@ -95,11 +85,20 @@ impl<'a> VnfWriter<'a> {
         out.write(self.file_header.as_slice());
     }
 
-    pub fn write_row<'b, W: io::Write + io::Seek>(&self, out: &'b mut W, values: &[column::Value]) {
-        let row_data = build_row_data(self.column_types, &values);
-        out.write(&(row_data.len() as u32).to_le_bytes());
-        out.write(&build_null_value_bit_field(values));
-        out.write(&row_data);
+    pub fn write_row<'b, W: io::Write>(
+        &mut self,
+        out: &'b mut W,
+        values: &[column::Value],
+    ) -> io::Result<usize>{
+        self.buf.clear();
+        self.buf.extend_from_slice(&[0, 0, 0, 0]);
+        push_null_values(&mut self.buf, values);
+        let row_data_start = self.buf.len();
+        push_row_data(&mut self.buf, self.column_types, &values);
+        let row_data_len = self.buf.len() - row_data_start;
+        let le_bytes = (row_data_len as u32).to_le_bytes();
+        le_bytes.iter().enumerate().for_each(|(i, b)| self.buf[i] = *b);
+        out.write(&self.buf)
     }
 }
 
@@ -152,7 +151,7 @@ mod tests {
     #[rustfmt::skip]
     #[test]
     fn write_vnf() {
-        let writer = VnfWriter::new(&[
+        let mut writer = VnfWriter::new(&[
             Type::Integer, Type::Boolean, Type::Char { len: 4 }, Type::Boolean,
             Type::Boolean, Type::Boolean, Type::Boolean, Type::Boolean,
             Type::Boolean,
