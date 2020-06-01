@@ -24,33 +24,12 @@ const BIT_POSITION: [u8; 8] = [
 /// Each byte represents 8 columns, a high bit means the column
 /// value is NULL.
 fn build_null_value_bit_field(values: &[column::Value]) -> Vec<u8> {
-    values
-        .iter()
-        .enumerate()
-        .map(|(i, value)| {
-            (
-                i,
-                match value {
-                    column::Value::Null => BIT_POSITION[i % 8],
-                    _ => 0,
-                },
-            )
-        })
-        .fold(
-            Vec::<u8>::with_capacity((values.len() + 7) / 8),
-            |mut bitfield, (i, bit)| {
-                if i % 8 == 0 {
-                    bitfield.push(bit)
-                } else {
-                    let j = bitfield.len() - 1;
-                    bitfield[j] = bitfield[j] | bit;
-                }
-                bitfield
-            },
-        )
+    let mut buffer = Vec::<u8>::new();
+    push_null_values(&mut buffer, values);
+    buffer
 }
 
-fn push_null_values<'a>(buffer: &'a mut Vec<u8>, values: &[column::Value]) -> &'a mut Vec<u8> {
+fn push_null_values(buffer: &mut Vec<u8>, values: &[column::Value]) {
     values
         .iter()
         .enumerate()
@@ -70,8 +49,7 @@ fn push_null_values<'a>(buffer: &'a mut Vec<u8>, values: &[column::Value]) -> &'
                 let j = buffer.len() - 1;
                 buffer[j] = buffer[j] | bit;
             }
-        });
-    buffer
+        })
 }
 
 fn push_row_data<'a>(
