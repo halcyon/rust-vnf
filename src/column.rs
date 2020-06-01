@@ -63,16 +63,15 @@ impl Type {
             _ => match self {
                 Type::Boolean => match value {
                     Value::Boolean(b) => buffer.push(if *b { 1u8 } else { 0u8 }),
-                    _ => unimplemented!("{:?}", value)
+                    _ => unimplemented!("{:?}", value),
                 },
                 Type::Integer => match value {
                     Value::Integer(i) => buffer.extend_from_slice(&i.to_le_bytes()),
-                    _ => unimplemented!("{:?}", value)
+                    _ => unimplemented!("{:?}", value),
                 },
                 Type::Float => match value {
                     Value::Float(f) => buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
-                    _ => unimplemented!("{:?}", value)
-
+                    _ => unimplemented!("{:?}", value),
                 },
                 Type::Char { len } => match value {
                     Value::Char(s) => {
@@ -83,7 +82,7 @@ impl Type {
                             buffer.push(0x20);
                         }
                     }
-                    _ => unimplemented!("{:?}", value) ,
+                    _ => unimplemented!("{:?}", value),
                 },
                 _ => unimplemented!("{:?}", self),
             },

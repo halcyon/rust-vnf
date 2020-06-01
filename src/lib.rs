@@ -50,11 +50,41 @@ fn build_null_value_bit_field(values: &[column::Value]) -> Vec<u8> {
         )
 }
 
-fn len(result: io::Result<usize>) -> usize {
-    match result {
-        Ok(len) => len,
-        _ => 0,
-    }
+fn push_null_values<'a>(buffer: &'a mut Vec<u8>, values: &[column::Value]) -> &'a mut Vec<u8> {
+    values
+        .iter()
+        .enumerate()
+        .map(|(i, value)| {
+            (
+                i,
+                match value {
+                    column::Value::Null => BIT_POSITION[i % 8],
+                    _ => 0,
+                },
+            )
+        })
+        .for_each(|(i, bit)| {
+            if i % 8 == 0 {
+                buffer.push(bit)
+            } else {
+                let j = buffer.len() - 1;
+                buffer[j] = buffer[j] | bit;
+            }
+        });
+    buffer
+}
+
+fn push_row_data<'a>(
+    buffer: &'a mut Vec<u8>,
+    types: &[column::Type],
+    values: &[column::Value],
+) -> &'a mut Vec<u8> {
+    values
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (types[i], v))
+        .for_each(|(t, v)| t.append(buffer, v));
+    buffer
 }
 
 fn build_row_data(types: &[column::Type], values: &[column::Value]) -> Vec<u8> {
