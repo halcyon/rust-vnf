@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::column::Type;
 use std::u8;
 
