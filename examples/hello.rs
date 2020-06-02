@@ -13,16 +13,18 @@ fn main() {
         Type::Boolean,
     ]);
     let mut out: Cursor<Vec<u8>> = Cursor::new(vec![]);
-    writer.write_file_header(&mut out);
-    writer.write_row(
-        &mut out,
-        &[
-            Value::Integer(4),
-            Value::Boolean(true),
-            Value::Char("Fred"),
-            Value::Null,
-        ],
-    );
+    writer.write_file_header(&mut out).unwrap();
+    writer
+        .write_row(
+            &mut out,
+            &[
+                Value::Integer(4),
+                Value::Boolean(true),
+                Value::Char("Fred"),
+                Value::Null,
+            ],
+        )
+        .unwrap();
 
     assert_eq!(
         &vec![
@@ -43,5 +45,4 @@ fn main() {
         ],
         out.get_ref()
     );
-    println!("Hello world!");
 }

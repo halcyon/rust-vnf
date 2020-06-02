@@ -1,6 +1,4 @@
-#![allow(unused)]
-
-use std::{cmp::min, io, u32};
+use std::u32;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -78,7 +76,7 @@ impl Type {
                         let char_len = std::cmp::min(*len, s.len());
                         let pad_len = if *len > s.len() { *len - s.len() } else { 0 };
                         buffer.extend_from_slice(&s.as_bytes()[0..char_len]);
-                        for x in 0..pad_len {
+                        for _ in 0..pad_len {
                             buffer.push(0x20);
                         }
                     }
