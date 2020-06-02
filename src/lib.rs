@@ -1,14 +1,7 @@
-#![allow(unused)]
-
 pub mod column;
 pub mod date;
-mod file;
 pub mod header;
 pub mod row;
-
-use column::Value;
-use header::to_header;
-use std::{cmp::min, io};
 
 const BIT_POSITION: [u8; 8] = [
     0b1000_0000,
@@ -22,15 +15,8 @@ const BIT_POSITION: [u8; 8] = [
 ];
 
 /// Convert a slice of column values to a null value bit field.
-/// Each byte represents 8 columns, a high bit means the column
-/// value is NULL.
-fn build_null_value_bit_field(values: &[column::Value]) -> Vec<u8> {
-    let mut buffer = Vec::<u8>::new();
-    push_null_values(&mut buffer, values);
-    buffer
-}
-
-fn push_null_values(buffer: &mut Vec<u8>, values: &[column::Value]) {
+/// Each byte represents 8 columns, a set bit means the value is NULL.
+fn push_null_value_bit_field(buffer: &mut Vec<u8>, values: &[column::Value]) {
     values
         .iter()
         .enumerate()
@@ -61,95 +47,119 @@ fn push_row_data(buffer: &mut Vec<u8>, types: &[column::Type], values: &[column:
         .for_each(|(t, v)| t.append(buffer, v))
 }
 
-fn build_row_data(types: &[column::Type], values: &[column::Value]) -> Vec<u8> {
-    let mut buf = Vec::<u8>::new();
-    push_row_data(&mut buf, types, values);
-    buf
-}
-
 pub struct VnfWriter<'a> {
-    buf: Vec<u8>,
     column_types: &'a [column::Type],
-    file_header: Vec<u8>,
+    buffer: Vec<u8>,
 }
 
 impl<'a> VnfWriter<'a> {
     pub fn new(column_types: &[column::Type]) -> VnfWriter {
         VnfWriter {
-            buf: Vec::<u8>::new(),
             column_types,
-            file_header: to_header(column_types),
+            buffer: Vec::<u8>::new(),
         }
     }
 
-    pub fn write_file_header<W: io::Write>(&self, out: &mut W) -> io::Result<usize> {
-        out.write(self.file_header.as_slice())
+    pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> std::io::Result<usize> {
+        out.write(header::to_header(self.column_types).as_slice())
     }
 
-    pub fn write_row<'b, W: io::Write>(
+    pub fn write_row<'b, W: std::io::Write>(
         &mut self,
         out: &'b mut W,
         values: &[column::Value],
-    ) -> io::Result<usize> {
-        self.buf.clear();
-        self.buf.extend_from_slice(&[0, 0, 0, 0]);
-        push_null_values(&mut self.buf, values);
-        let row_data_start = self.buf.len();
-        push_row_data(&mut self.buf, self.column_types, &values);
-        let row_data_len = self.buf.len() - row_data_start;
-        let le_bytes = (row_data_len as u32).to_le_bytes();
-        le_bytes
+    ) -> std::io::Result<usize> {
+
+        self.buffer.clear();
+
+        // Skip row data length - we don't know length yet
+        self.buffer.extend_from_slice(&[0, 0, 0, 0]);
+
+        push_null_value_bit_field(&mut self.buffer, values);
+        let row_header_len = self.buffer.len();
+
+        push_row_data(&mut self.buffer, self.column_types, &values);
+
+        let row_data_len = (self.buffer.len() - row_header_len) as u32;
+        row_data_len
+            .to_le_bytes()
             .iter()
             .enumerate()
-            .for_each(|(i, b)| self.buf[i] = *b);
-        out.write(&self.buf)
+            .for_each(|(i, b)| self.buffer[i] = *b);
+
+        out.write(&self.buffer)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use column::Type;
-    use column::Value;
+    use column::{Type, Value, Value::*};
     use std::io::Cursor;
 
+    fn new_null_values(values: &[Value]) -> Vec<u8> {
+        let mut buffer = Vec::<u8>::new();
+        push_null_value_bit_field(&mut buffer, values);
+        buffer
+    }
+
     #[test]
-    fn null_value_bit_field() {
-        assert_eq!(
-            vec![0b0000_0000],
-            build_null_value_bit_field(&[column::Value::Boolean(true)])
-        );
-        assert_eq!(
-            vec![0b1000_0000],
-            build_null_value_bit_field(&[column::Value::Null])
-        );
-        assert_eq!(
-            vec![0b1100_0000],
-            build_null_value_bit_field(&[column::Value::Null, column::Value::Null])
-        );
+    fn null_values() {
+        assert_eq!(vec![0b0000_0000], new_null_values(&[Boolean(true)]));
+        assert_eq!(vec![0b1000_0000], new_null_values(&[Null]));
+        assert_eq!(vec![0b1100_0000], new_null_values(&[Null, Null]));
         assert_eq!(
             vec![0b1111_1111],
-            build_null_value_bit_field(&[column::Value::Null; 8])
+            new_null_values(&[column::Value::Null; 8])
         );
-        assert_eq!(
-            vec![0b1111_1111, 0b1000_0000],
-            build_null_value_bit_field(&[column::Value::Null; 9])
-        );
-
+        assert_eq!(vec![0b1111_1111, 0b1000_0000], new_null_values(&[Null; 9]));
         assert_eq!(
             vec![0b1101_1000, 0b1000_0000],
-            build_null_value_bit_field(&[
-                column::Value::Null,
-                column::Value::Null,
-                column::Value::Boolean(true),
-                column::Value::Null,
-                column::Value::Null,
-                column::Value::Integer(8),
-                column::Value::Char("ted"),
-                column::Value::Char("bill"),
-                column::Value::Null,
+            new_null_values(&[
+                Null,
+                Null,
+                Boolean(true),
+                Null,
+                Null,
+                Integer(8),
+                Char("ted"),
+                Char("bill"),
+                Null,
             ])
-        )
+        );
+    }
+
+    fn new_row_data(types: &[column::Type], values: &[column::Value]) -> Vec<u8> {
+        let mut buf = Vec::<u8>::new();
+        push_row_data(&mut buf, types, values);
+        buf
+    }
+
+    #[test]
+    fn row_data() {
+        assert_eq!(Vec::<u8>::new(), new_row_data(&[Type::Boolean], &[Null]));
+        assert_eq!(vec![1u8], new_row_data(&[Type::Boolean], &[Boolean(true)]));
+        assert_eq!(
+            vec![1u8, 65, 66, 67, 68],
+            new_row_data(
+                &[Type::Boolean, Type::Char { len: 4 }],
+                &[Boolean(true), Char("ABCDE")],
+            )
+        );
+        assert_eq!(
+            vec![1u8, 65, 66, 67, 68],
+            new_row_data(
+                &[Type::Boolean, Type::Char { len: 4 }],
+                &[Boolean(true), Char("ABCDE")],
+            )
+        );
+        assert_eq!(
+            vec![1u8, 65, 66, 67, 68],
+            new_row_data(
+                &[Type::Boolean, Type::Integer, Type::Char { len: 4 }],
+                &[Boolean(true), Null, Char("ABCDE")],
+            )
+        );
     }
 
     #[rustfmt::skip]
@@ -161,15 +171,11 @@ mod tests {
             Type::Boolean,
         ]);
         let mut out: Cursor<Vec<u8>> = Cursor::new(vec![]);
-        writer.write_file_header(&mut out);
+        writer.write_file_header(&mut out).unwrap();
         writer.write_row(
             &mut out,
-            &[
-                Value::Integer(4), Value::Boolean(true), Value::Char("Fred"), Value::Null,
-                Value::Null, Value::Null, Value::Null, Value::Null,
-                Value::Null,
-            ],
-        );
+            &[Integer(4), Boolean(true), Char("Fred"), Null, Null, Null, Null, Null, Null],
+        ).unwrap();
 
         assert_eq!(
             &vec![78, 65, 84, 73, 86, 69, 10, 255, 13, 10, 0, // SIGNATURE
@@ -195,46 +201,5 @@ mod tests {
             ],
             out.get_ref()
         )
-    }
-
-    #[test]
-    fn row_data() {
-        assert_eq!(
-            Vec::<u8>::new(),
-            build_row_data(&[column::Type::Boolean], &[column::Value::Null])
-        );
-        assert_eq!(
-            vec![1u8],
-            build_row_data(&[column::Type::Boolean], &[column::Value::Boolean(true)])
-        );
-        assert_eq!(
-            vec![1u8, 65, 66, 67, 68],
-            build_row_data(
-                &[column::Type::Boolean, column::Type::Char { len: 4 }],
-                &[column::Value::Boolean(true), column::Value::Char("ABCDE")],
-            )
-        );
-        assert_eq!(
-            vec![1u8, 65, 66, 67, 68],
-            build_row_data(
-                &[column::Type::Boolean, column::Type::Char { len: 4 }],
-                &[column::Value::Boolean(true), column::Value::Char("ABCDE")],
-            )
-        );
-        assert_eq!(
-            vec![1u8, 65, 66, 67, 68],
-            build_row_data(
-                &[
-                    column::Type::Boolean,
-                    column::Type::Integer,
-                    column::Type::Char { len: 4 }
-                ],
-                &[
-                    column::Value::Boolean(true),
-                    column::Value::Null,
-                    column::Value::Char("ABCDE")
-                ],
-            )
-        );
     }
 }
