@@ -1,4 +1,5 @@
 #![allow(unused)]
+
 pub mod column;
 pub mod date;
 mod file;
@@ -81,15 +82,15 @@ impl<'a> VnfWriter<'a> {
         }
     }
 
-    pub fn write_file_header<W: io::Write>(&self, out: &mut W) {
-        out.write(self.file_header.as_slice());
+    pub fn write_file_header<W: io::Write>(&self, out: &mut W) -> io::Result<usize> {
+        out.write(self.file_header.as_slice())
     }
 
     pub fn write_row<'b, W: io::Write>(
         &mut self,
         out: &'b mut W,
         values: &[column::Value],
-    ) -> io::Result<usize>{
+    ) -> io::Result<usize> {
         self.buf.clear();
         self.buf.extend_from_slice(&[0, 0, 0, 0]);
         push_null_values(&mut self.buf, values);
@@ -97,7 +98,10 @@ impl<'a> VnfWriter<'a> {
         push_row_data(&mut self.buf, self.column_types, &values);
         let row_data_len = self.buf.len() - row_data_start;
         let le_bytes = (row_data_len as u32).to_le_bytes();
-        le_bytes.iter().enumerate().for_each(|(i, b)| self.buf[i] = *b);
+        le_bytes
+            .iter()
+            .enumerate()
+            .for_each(|(i, b)| self.buf[i] = *b);
         out.write(&self.buf)
     }
 }
@@ -207,14 +211,14 @@ mod tests {
             vec![1u8, 65, 66, 67, 68],
             build_row_data(
                 &[column::Type::Boolean, column::Type::Char { len: 4 }],
-                &[column::Value::Boolean(true), column::Value::Char("ABCDE")]
+                &[column::Value::Boolean(true), column::Value::Char("ABCDE")],
             )
         );
         assert_eq!(
             vec![1u8, 65, 66, 67, 68],
             build_row_data(
                 &[column::Type::Boolean, column::Type::Char { len: 4 }],
-                &[column::Value::Boolean(true), column::Value::Char("ABCDE")]
+                &[column::Value::Boolean(true), column::Value::Char("ABCDE")],
             )
         );
         assert_eq!(
@@ -229,7 +233,7 @@ mod tests {
                     column::Value::Boolean(true),
                     column::Value::Null,
                     column::Value::Char("ABCDE")
-                ]
+                ],
             )
         );
     }
