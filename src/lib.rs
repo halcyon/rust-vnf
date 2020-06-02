@@ -15,9 +15,8 @@ const BIT_POSITION: [u8; 8] = [
 ];
 
 /// Convert a slice of column values to a null value bit field.
-/// Each byte represents 8 columns, a high bit means the column
-/// value is NULL.
-fn push_null_values(buffer: &mut Vec<u8>, values: &[column::Value]) {
+/// Each byte represents 8 columns, a set bit means the value is NULL.
+fn push_null_value_bit_field(buffer: &mut Vec<u8>, values: &[column::Value]) {
     values
         .iter()
         .enumerate()
@@ -49,22 +48,20 @@ fn push_row_data(buffer: &mut Vec<u8>, types: &[column::Type], values: &[column:
 }
 
 pub struct VnfWriter<'a> {
-    buf: Vec<u8>,
     column_types: &'a [column::Type],
-    file_header: Vec<u8>,
+    buffer: Vec<u8>,
 }
 
 impl<'a> VnfWriter<'a> {
     pub fn new(column_types: &[column::Type]) -> VnfWriter {
         VnfWriter {
-            buf: Vec::<u8>::new(),
             column_types,
-            file_header: header::to_header(column_types),
+            buffer: Vec::<u8>::new(),
         }
     }
 
     pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> std::io::Result<usize> {
-        out.write(self.file_header.as_slice())
+        out.write(header::to_header(self.column_types).as_slice())
     }
 
     pub fn write_row<'b, W: std::io::Write>(
@@ -72,18 +69,25 @@ impl<'a> VnfWriter<'a> {
         out: &'b mut W,
         values: &[column::Value],
     ) -> std::io::Result<usize> {
-        self.buf.clear();
-        self.buf.extend_from_slice(&[0, 0, 0, 0]);
-        push_null_values(&mut self.buf, values);
-        let row_data_start = self.buf.len();
-        push_row_data(&mut self.buf, self.column_types, &values);
-        let row_data_len = self.buf.len() - row_data_start;
-        let le_bytes = (row_data_len as u32).to_le_bytes();
-        le_bytes
+
+        self.buffer.clear();
+
+        // Skip row data length - we don't know length yet
+        self.buffer.extend_from_slice(&[0, 0, 0, 0]);
+
+        push_null_value_bit_field(&mut self.buffer, values);
+        let row_header_len = self.buffer.len();
+
+        push_row_data(&mut self.buffer, self.column_types, &values);
+
+        let row_data_len = (self.buffer.len() - row_header_len) as u32;
+        row_data_len
+            .to_le_bytes()
             .iter()
             .enumerate()
-            .for_each(|(i, b)| self.buf[i] = *b);
-        out.write(&self.buf)
+            .for_each(|(i, b)| self.buffer[i] = *b);
+
+        out.write(&self.buffer)
     }
 }
 
@@ -95,7 +99,7 @@ mod tests {
 
     fn new_null_values(values: &[Value]) -> Vec<u8> {
         let mut buffer = Vec::<u8>::new();
-        push_null_values(&mut buffer, values);
+        push_null_value_bit_field(&mut buffer, values);
         buffer
     }
 
