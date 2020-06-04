@@ -3,6 +3,9 @@ pub mod date;
 pub mod header;
 pub mod row;
 
+use column::{Type, Value};
+use std::io::{Result, Write};
+
 const BIT_POSITION: [u8; 8] = [
     0b1000_0000,
     0b0100_0000,
@@ -16,7 +19,7 @@ const BIT_POSITION: [u8; 8] = [
 
 /// Convert a slice of column values to a null value bit field.
 /// Each byte represents 8 columns, a set bit means the value is NULL.
-fn push_null_value_bit_field(buffer: &mut Vec<u8>, values: &[column::Value]) {
+fn push_null_value_bit_field(buffer: &mut Vec<u8>, values: &[Value]) {
     values
         .iter()
         .enumerate()
@@ -39,7 +42,7 @@ fn push_null_value_bit_field(buffer: &mut Vec<u8>, values: &[column::Value]) {
         })
 }
 
-fn push_row_data(buffer: &mut Vec<u8>, types: &[column::Type], values: &[column::Value]) {
+fn push_row_data(buffer: &mut Vec<u8>, types: &[Type], values: &[Value]) {
     values
         .iter()
         .enumerate()
@@ -53,23 +56,18 @@ pub struct VnfWriter<'a> {
 }
 
 impl<'a> VnfWriter<'a> {
-    pub fn new(column_types: &[column::Type]) -> VnfWriter {
+    pub fn new(column_types: &[Type]) -> VnfWriter {
         VnfWriter {
             column_types,
             buffer: Vec::<u8>::new(),
         }
     }
 
-    pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> std::io::Result<usize> {
+    pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> Result<usize> {
         out.write(header::to_header(self.column_types).as_slice())
     }
 
-    pub fn write_row<'b, W: std::io::Write>(
-        &mut self,
-        out: &'b mut W,
-        values: &[column::Value],
-    ) -> std::io::Result<usize> {
-
+    pub fn write_row<'b, W: Write>(&mut self, out: &'b mut W, values: &[Value]) -> Result<usize> {
         self.buffer.clear();
 
         // Skip row data length - we don't know length yet
