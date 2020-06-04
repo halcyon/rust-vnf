@@ -1,11 +1,11 @@
 [package]
 name = "vnf"
 version = "0.1.0"
-authors = ["Scott McLeod <scotmcle@cisco.com>"]
+authors = ["Scott McLeod <scotmcle@cisco.com>", "Tom Gagnier <tgagnier@cisco.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chrono = "0.4.10"
-error-chain = "0.12.2"
+thiserror = "1.0"
