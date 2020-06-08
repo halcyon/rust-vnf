@@ -1,0 +1,12 @@
+
+|             |                           |
+| C-x C-s     | Save                      |
+| M-x         | Display mini-buffer       |
+| C-g         | Abort                     |
+| C-c C-c C-c | Run test at point         |
+| C-h k       | describe-key (key chords) |
+| C-h f       | describe-function         |
+| C-h t       | Emacs tutorial            |
+| C-l         | recenter-top-bottom       |
+| C-o         | other-window              |
+| C-c p p     | Jump to project           |
