@@ -3,7 +3,6 @@ TODO
 
 |       |                                                                        |
 |-------|------------------------------------------------------------------------|
-| Jun 1 | Pre-condition checks https://docs.rs/contracts/0.4.0/contracts/        |
 | Jun 8 | https://stevedonovan.github.io/rust-gentle-intro/6-error-handling.html |
 | Jun 8 | Complete vnf::column::{Type, Value}                                    |
 | Jun 8 | Investigate write_row! macro                                           |

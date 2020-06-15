@@ -25,8 +25,8 @@ fn microseconds_since_midnight(hours: i32, minutes: i32, seconds: i32) -> u64 {
 }
 
 pub fn _timetz(hours: i32, minutes: i32, seconds: i32, timezone: i32) -> u64 {
-    ((microseconds_since_midnight(hours - timezone, minutes, seconds) << 24)
-        | seconds_since_midnight(24 - timezone, 0, 0) as u64)
+    (microseconds_since_midnight(hours - timezone, minutes, seconds) << 24)
+        | seconds_since_midnight(24 - timezone, 0, 0) as u64
 }
 
 #[cfg(test)]

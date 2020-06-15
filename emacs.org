@@ -10,3 +10,5 @@
 | C-l         | recenter-top-bottom       |
 | C-o         | other-window              |
 | C-c p p     | Jump to project           |
+| C-c p f     | Fuzzy find file           |
+| C-c C-c C-b | rustic-cargo-build        |
