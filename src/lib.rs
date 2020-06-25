@@ -1,3 +1,9 @@
+#![recursion_limit = "1024"]
+
+#[macro_use]
+extern crate error_chain;
+
+pub mod errors;
 pub mod column;
 pub mod date;
 pub mod header;
@@ -47,7 +53,7 @@ fn push_row_data(buffer: &mut Vec<u8>, types: &[Type], values: &[Value]) {
         .iter()
         .enumerate()
         .map(|(i, v)| (types[i], v))
-        .for_each(|(t, v)| t.append(buffer, v))
+        .for_each(|(t, v)| t.append(buffer, v).unwrap())
 }
 
 pub struct VnfWriter<'a> {
