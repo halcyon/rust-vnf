@@ -56,34 +56,23 @@ pub enum Value<'a> {
 
 impl Type {
     pub fn append(&self, buffer: &mut Vec<u8>, value: &Value) {
-        match value {
-            Value::Null => return,
-            _ => match self {
-                Type::Boolean => match value {
-                    Value::Boolean(b) => buffer.push(if *b { 1u8 } else { 0u8 }),
-                    _ => unimplemented!("{:?}", value),
-                },
-                Type::Integer => match value {
-                    Value::Integer(i) => buffer.extend_from_slice(&i.to_le_bytes()),
-                    _ => unimplemented!("{:?}", value),
-                },
-                Type::Float => match value {
-                    Value::Float(f) => buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
-                    _ => unimplemented!("{:?}", value),
-                },
-                Type::Char { len } => match value {
-                    Value::Char(s) => {
-                        let char_len = std::cmp::min(*len, s.len());
-                        let pad_len = if *len > s.len() { *len - s.len() } else { 0 };
-                        buffer.extend_from_slice(&s.as_bytes()[0..char_len]);
-                        for _ in 0..pad_len {
-                            buffer.push(0x20);
-                        }
-                    }
-                    _ => unimplemented!("{:?}", value),
-                },
-                _ => unimplemented!("{:?}", self),
-            },
+        match (self, value) {
+            (_, Value::Null) => return,
+            (Type::Boolean, Value::Boolean(b)) =>
+                buffer.push(if *b { 1u8 } else { 0u8 }),
+            (Type::Integer, Value::Integer(i)) =>
+                buffer.extend_from_slice(&i.to_le_bytes()),
+            (Type::Float, Value::Float(f)) =>
+                buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
+            (Type::Char{len}, Value::Char(s)) => {
+                let char_len = std::cmp::min(*len, s.len());
+                let pad_len = if *len > s.len() { *len - s.len() } else { 0 };
+                buffer.extend_from_slice(&s.as_bytes()[0..char_len]);
+                for _ in 0..pad_len {
+                    buffer.push(0x20);
+                }
+            }
+            (_, value) => unimplemented!("({:?}, {:?})", self, value),
         }
     }
 }
