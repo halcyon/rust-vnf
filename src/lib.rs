@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate error_chain;
 
-pub mod errors;
 pub mod column;
 pub mod date;
 pub mod header;
@@ -11,6 +10,14 @@ pub mod row;
 
 use column::{Type, Value};
 use std::io::{Result, Write};
+
+pub mod errors {
+    error_chain!{
+        foreign_links {
+            Io(::std::io::Error);
+        }
+    }
+}
 
 const BIT_POSITION: [u8; 8] = [
     0b1000_0000,
@@ -53,7 +60,7 @@ fn push_row_data(buffer: &mut Vec<u8>, types: &[Type], values: &[Value]) {
         .iter()
         .enumerate()
         .map(|(i, v)| (types[i], v))
-        .for_each(|(t, v)| t.append(buffer, v).unwrap())
+        .for_each(|(t, v)| t.append(buffer, v))
 }
 
 pub struct VnfWriter<'a> {
@@ -69,11 +76,12 @@ impl<'a> VnfWriter<'a> {
         }
     }
 
-    pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> Result<usize> {
-        out.write(header::to_header(self.column_types).as_slice())
+    pub fn write_file_header<W: std::io::Write>(&self, out: &mut W) -> Result<()> {
+        out.write(header::to_header(self.column_types).as_slice())?;
+        Ok(())
     }
 
-    pub fn write_row<'b, W: Write>(&mut self, out: &'b mut W, values: &[Value]) -> Result<usize> {
+    pub fn write_row<'b, W: Write>(&mut self, out: &'b mut W, values: &[Value]) -> Result<()> {
         self.buffer.clear();
 
         // Skip row data length - we don't know length yet
@@ -91,7 +99,8 @@ impl<'a> VnfWriter<'a> {
             .enumerate()
             .for_each(|(i, b)| self.buffer[i] = *b);
 
-        out.write(&self.buffer)
+        out.write(&self.buffer)?;
+        Ok(())
     }
 }
 

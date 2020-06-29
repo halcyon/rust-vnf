@@ -1,5 +1,4 @@
 use std::u32;
-use crate::errors::*;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
