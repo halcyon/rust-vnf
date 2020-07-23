@@ -1,4 +1,7 @@
 use std::u32;
+use thiserror::Error;
+use std::fmt;
+
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -16,6 +19,21 @@ pub enum Type {
     Binary { len: usize },
     Numeric { precision: u32, _scale: u32 },
     Interval,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum ConversionError {
+    #[error("unable to convert {column_type:?} to {value:?}")]
+    InvalidConversion {
+        column_type: String,
+        value: String,
+    },
 }
 
 impl From<&Type> for u32 {
@@ -54,16 +72,16 @@ pub enum Value<'a> {
     Char(&'a str),
 }
 
+
 impl Type {
-    pub fn append(&self, buffer: &mut Vec<u8>, value: &Value) {
+    pub fn append(&self, buffer: &mut Vec<u8>, value: &Value) -> Result<(), ConversionError>{
         match (self, value) {
-            (_, Value::Null) => return,
+            (_, Value::Null) => (),
             (Type::Boolean, Value::Boolean(b)) =>
                 buffer.push(if *b { 1u8 } else { 0u8 }),
             (Type::Integer, Value::Integer(i)) =>
                 buffer.extend_from_slice(&i.to_le_bytes()),
-            (Type::Float, Value::Float(f)) =>
-                buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
+            (Type::Float, Value::Float(f)) => buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
             (Type::Char{len}, Value::Char(s)) => {
                 let char_len = std::cmp::min(*len, s.len());
                 let pad_len = if *len > s.len() { *len - s.len() } else { 0 };
@@ -71,9 +89,14 @@ impl Type {
                 for _ in 0..pad_len {
                     buffer.push(0x20);
                 }
+            },
+            (_, value) => {
+                let _error = ConversionError::InvalidConversion {column_type: self.to_string(),
+                                                                 value: String::from("ted")};
+                return Err(_error)
             }
-            (_, value) => unimplemented!("({:?}, {:?})", self, value),
         }
+        Ok(())
     }
 }
 
@@ -105,9 +128,19 @@ mod tests {
     #[test]
     fn boolean() {
         let mut out: Vec<u8> = vec![];
-        Type::Boolean.append(&mut out, &Value::Boolean(true));
-        Type::Boolean.append(&mut out, &Value::Boolean(false));
+        Type::Boolean.append(&mut out, &Value::Boolean(true)).unwrap();
+        Type::Boolean.append(&mut out, &Value::Boolean(false)).unwrap();
         assert_eq!(vec![1u8, 0u8], out);
+    }
+
+    #[test]
+    fn conversion_error() {
+        let mut out: Vec<u8> = vec![];
+        let result = Type::Boolean.append(&mut out, &Value::Integer(18));
+        println!("-------------");
+        println!("{:?}", result);
+        println!("-------------");
+        // assert_eq!(vec![1u8, 0u8], out);
     }
 
     #[test]
