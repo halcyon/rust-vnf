@@ -1,7 +1,6 @@
+use std::fmt;
 use std::u32;
 use thiserror::Error;
-use std::fmt;
-
 
 #[derive(Copy, Clone, Debug)]
 pub enum Type {
@@ -27,13 +26,10 @@ impl fmt::Display for Type {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum ConversionError {
     #[error("unable to convert {column_type:?} to {value:?}")]
-    InvalidConversion {
-        column_type: String,
-        value: String,
-    },
+    InvalidConversion { column_type: String, value: String },
 }
 
 impl From<&Type> for u32 {
@@ -72,28 +68,32 @@ pub enum Value<'a> {
     Char(&'a str),
 }
 
+impl fmt::Display for Value<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 impl Type {
-    pub fn append(&self, buffer: &mut Vec<u8>, value: &Value) -> Result<(), ConversionError>{
+    pub fn append(&self, buffer: &mut Vec<u8>, value: &Value) -> Result<(), ConversionError> {
         match (self, value) {
             (_, Value::Null) => (),
-            (Type::Boolean, Value::Boolean(b)) =>
-                buffer.push(if *b { 1u8 } else { 0u8 }),
-            (Type::Integer, Value::Integer(i)) =>
-                buffer.extend_from_slice(&i.to_le_bytes()),
+            (Type::Boolean, Value::Boolean(b)) => buffer.push(if *b { 1u8 } else { 0u8 }),
+            (Type::Integer, Value::Integer(i)) => buffer.extend_from_slice(&i.to_le_bytes()),
             (Type::Float, Value::Float(f)) => buffer.extend_from_slice(&f.to_bits().to_le_bytes()),
-            (Type::Char{len}, Value::Char(s)) => {
+            (Type::Char { len }, Value::Char(s)) => {
                 let char_len = std::cmp::min(*len, s.len());
                 let pad_len = if *len > s.len() { *len - s.len() } else { 0 };
                 buffer.extend_from_slice(&s.as_bytes()[0..char_len]);
                 for _ in 0..pad_len {
                     buffer.push(0x20);
                 }
-            },
+            }
             (_, value) => {
-                let _error = ConversionError::InvalidConversion {column_type: self.to_string(),
-                                                                 value: String::from("ted")};
-                return Err(_error)
+                return Err(ConversionError::InvalidConversion {
+                    column_type: self.to_string(),
+                    value: value.to_string(),
+                });
             }
         }
         Ok(())
@@ -107,6 +107,7 @@ pub fn numeric_width(precision: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::column::ConversionError::InvalidConversion;
 
     #[test]
     fn test_numeric_width() {
@@ -128,53 +129,65 @@ mod tests {
     #[test]
     fn boolean() {
         let mut out: Vec<u8> = vec![];
-        Type::Boolean.append(&mut out, &Value::Boolean(true)).unwrap();
-        Type::Boolean.append(&mut out, &Value::Boolean(false)).unwrap();
+        Type::Boolean
+            .append(&mut out, &Value::Boolean(true))
+            .unwrap();
+        Type::Boolean
+            .append(&mut out, &Value::Boolean(false))
+            .unwrap();
         assert_eq!(vec![1u8, 0u8], out);
     }
 
     #[test]
     fn conversion_error() {
         let mut out: Vec<u8> = vec![];
-        let result = Type::Boolean.append(&mut out, &Value::Integer(18));
-        println!("-------------");
-        println!("{:?}", result);
-        println!("-------------");
-        // assert_eq!(vec![1u8, 0u8], out);
+        assert_eq!(
+            Err(InvalidConversion {
+                column_type: String::from("Boolean"),
+                value: String::from("Integer(18)"),
+            }),
+            Type::Boolean.append(&mut out, &Value::Integer(18))
+        )
     }
 
     #[test]
     fn integer() {
         let mut out: Vec<u8> = vec![];
-        Type::Integer.append(&mut out, &Value::Integer(1));
+        Type::Integer.append(&mut out, &Value::Integer(1)).unwrap();
         assert_eq!(vec![1u8, 0, 0, 0, 0, 0, 0, 0], out);
     }
 
     #[test]
     fn float() {
         let mut out: Vec<u8> = vec![];
-        Type::Float.append(&mut out, &Value::Float(-1.11));
+        Type::Float.append(&mut out, &Value::Float(-1.11)).unwrap();
         assert_eq!(vec![0xc3u8, 0xf5, 0x28, 0x5c, 0x8f, 0xc2, 0xf1, 0xbf], out);
     }
 
     #[test]
     fn char_from_str() {
         let mut out: Vec<u8> = vec![];
-        Type::Char { len: 3 }.append(&mut out, &Value::Char("ABC"));
+        Type::Char { len: 3 }
+            .append(&mut out, &Value::Char("ABC"))
+            .unwrap();
         assert_eq!(vec![0x41, 0x42, 0x43], out);
     }
 
     #[test]
     fn char_underflow() {
         let mut out: Vec<u8> = vec![];
-        Type::Char { len: 3 }.append(&mut out, &Value::Char("AB"));
+        Type::Char { len: 3 }
+            .append(&mut out, &Value::Char("AB"))
+            .unwrap();
         assert_eq!(vec![0x41, 0x42, 0x20], out);
     }
 
     #[test]
     fn char_overflow() {
         let mut out: Vec<u8> = vec![];
-        Type::Char { len: 3 }.append(&mut out, &Value::Char("ABCD"));
+        Type::Char { len: 3 }
+            .append(&mut out, &Value::Char("ABCD"))
+            .unwrap();
         assert_eq!(vec![0x41, 0x42, 0x43], out);
     }
 }
