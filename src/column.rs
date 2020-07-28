@@ -26,7 +26,7 @@ impl fmt::Display for Type {
     }
 }
 
-#[derive(Error, Debug, Eq, PartialEq)]
+#[derive(Error, Debug, PartialEq)]
 pub enum ConversionError {
     #[error("unable to convert {column_type:?} to {value:?}")]
     InvalidConversion { column_type: String, value: String },
