@@ -2,6 +2,7 @@ pub mod column;
 pub mod date;
 pub mod header;
 pub mod row;
+pub mod generic;
 
 use column::{Type, Value};
 use std::io::{Result, Write};
