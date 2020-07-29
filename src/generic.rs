@@ -1,15 +1,12 @@
-use crate::column::{Type};
-use std::io::{Write};
-
-
-
+use crate::column::Type;
+use std::io::{Result,Write};
 
 trait Append {
-    fn append(&self, out: &mut dyn Write, column_type: &Type) -> std::io::Result<usize>;
+    fn append(&self, out: &mut dyn Write, column_type: &Type) -> Result<usize>;
 }
 
 impl Append for u64 {
-    fn append(&self, out: &mut dyn Write, column_type: &Type) -> std::io::Result<usize> {
+    fn append(&self, out: &mut dyn Write, column_type: &Type) -> Result<usize> {
         match column_type {
             Type::Integer => out.write(&self.to_le_bytes()),
             _ => unimplemented!("ted")
