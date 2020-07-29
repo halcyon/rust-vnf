@@ -4,16 +4,15 @@ use std::io::{Write};
 
 
 
-trait Append<T> {
-    fn append(out: &mut dyn Write, column_type: &Type, input: &T) -> std::io::Result<usize>;
+trait Append {
+    fn append(&self, out: &mut dyn Write, column_type: &Type) -> std::io::Result<usize>;
 }
 
-impl<T> Append<T> for u64 {
-    fn append(out: &mut dyn Write, column_type: &Type, input: &u64) -> std::io::Result<usize> {
+impl Append for u64 {
+    fn append(&self, out: &mut dyn Write, column_type: &Type) -> std::io::Result<usize> {
         match column_type {
-            Type::Integer => out.write(input.to_le_bytes()),
+            Type::Integer => out.write(&self.to_le_bytes()),
             _ => unimplemented!("ted")
-
         }
     }
 }
@@ -22,16 +21,14 @@ impl<T> Append<T> for u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn test_append() {
-        let mut out = Vec::new();
+        let mut out: Cursor<Vec<u8>> = Cursor::new(vec![]);
 
-        append(out, &Column::Type::Int, 5);
+        5.append(& mut out, &Type::Integer).unwrap();
 
-        println!(out);
-
-
-
+        println!("{:?}", &out);
     }
 }
